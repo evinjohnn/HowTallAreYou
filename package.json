@@ -1,27 +1,24 @@
 {
   "name": "howtallareyou",
   "version": "1.0.0",
-  "description": "**HowTallAreYou?** is an innovative web application that uses advanced AI and computer vision techniques to estimate a person's height from uploaded photos. This project aims to provide users with an accurate representation of their height, challenging self-reported measurements and promoting body awareness.",
-  "main": "script.js",
+  "description": "An AI-powered application to estimate height from photos using Groq.",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/evinjohnn/HowTallAreYou.git"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Evin John",
   "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/evinjohnn/HowTallAreYou/issues"
-  },
-  "homepage": "https://github.com/evinjohnn/HowTallAreYou#readme",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "groq-sdk": "^0.25.0"
+    "express": "^4.19.2",
+    "groq-sdk": "^0.3.2"
+  },
+  "devDependencies": {
+    "dotenv": "^16.5.0"
   }
 }

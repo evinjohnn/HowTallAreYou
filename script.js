@@ -1,15 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // NO API KEY NEEDED HERE! It's safely stored on the server.
-
     // --- DOM Element Selectors ---
     const imageUploadInput = document.getElementById('image-upload');
+    const uploadBtn = document.getElementById('upload-btn'); // Added this
     const imagePreviewContainer = document.getElementById('image-preview-container');
     const analyzeBtn = document.getElementById('analyze-btn');
     const resetBtn = document.getElementById('reset-btn');
     const userHeightInput = document.getElementById('user-height-input');
     const heightUnitSelect = document.getElementById('height-unit');
     const errorMessageDiv = document.getElementById('error-message');
-    
     const landingPage = document.getElementById('landing-page');
     const resultsPage = document.getElementById('results-page');
     
@@ -18,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_IMAGES = 4;
 
     // --- Event Listeners ---
+    uploadBtn.addEventListener('click', () => imageUploadInput.click()); // Added this
     imageUploadInput.addEventListener('change', handleImageUpload);
     analyzeBtn.addEventListener('click', handleAnalysis);
     resetBtn.addEventListener('click', showLandingPage);
@@ -54,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             imagePreviewContainer.appendChild(div);
         });
-        // Add event listeners to new remove buttons
         document.querySelectorAll('.remove-image').forEach(button => {
             button.addEventListener('click', (e) => removeImage(e.target.dataset.index));
         });
@@ -92,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleAnalysis() {
         hideError();
         
-        // --- Validation ---
         if (uploadedImages.length === 0) {
             showError('Please upload at least one image.');
             return;
@@ -101,34 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Please enter your height.');
             return;
         }
-        // No API key check needed since it's handled server-side
 
         toggleLoading(true);
         let aiResultText = "Failed to get a result.";
 
         try {
-            // --- MODIFIED PART: Call your own backend endpoint ---
             const response = await fetch('/api/analyze', {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ 
-                    image: uploadedImages[0] // Send the full data URL including the data:image prefix
-                })
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: uploadedImages[0] })
             });
-            // --- END OF MODIFIED PART ---
 
             if (!response.ok) {
-                let errorMessage = 'Server error occurred';
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.error || errorMessage;
-                } catch (e) {
-                    // If response isn't JSON, use status text
-                    errorMessage = response.statusText || errorMessage;
-                }
-                throw new Error(errorMessage);
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'API request failed');
             }
 
             const data = await response.json();
@@ -169,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const feet = Math.floor(totalInches / 12);
             const inches = Math.round(totalInches % 12);
             formattedUserHeight = `${userHeightCm} cm (~${feet}'${inches}")`;
-        } else { // 'ft'
+        } else {
             const feet = Math.floor(userHeightNum);
             const inches = Math.round((userHeightNum - feet) * 12);
             userHeightCm = (feet * 12 + inches) * 2.54;
@@ -177,10 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.getElementById('user-height').textContent = formattedUserHeight;
 
-        // Update Hall of Fame
         let percentile = 50;
         if (userHeightCm) {
-            // Simple scale: 150cm = 10%, 175cm = 50%, 200cm = 90%
             percentile = Math.max(0, Math.min(100, ((userHeightCm - 150) / (200 - 150)) * 80 + 10));
         }
         document.getElementById('your-height-marker').style.left = `${percentile}%`;
@@ -192,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsPage.style.display = 'none';
         hideError();
         
-        // Reset state
         imageUploadInput.value = '';
         imageUploadInput.disabled = false;
         uploadedImages = [];
