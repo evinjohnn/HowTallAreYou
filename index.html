@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HowTallAreYou? - AI Height Guesser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="logo" id="logo">
+        <div class="logo-container">
+            <img src="src/2.jpg-removebg-preview.png" class="logo-image" alt="Logo">
+            <span class="website-name">HowTallAreYou?</span>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-content">
+        <!-- Landing Page -->
+        <div id="landing-page" class="container">
+            <div class="left-content">
+                <div class="content-box">
+                    <h1>Stop Capping</h1>
+                    <p>Our AI-powered app guesses your height from a photo. Upload an image and enter your height to see how the AI's estimate compares!</p>
+                    
+                    <div id="error-message" class="error-message"></div>
+
+                    <div class="input-container">
+                        <div class="upload-section">
+                            <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
+                            <button class="upload-btn" onclick="document.getElementById('image-upload').click()">Upload Images</button>
+                            <div class="image-upload-container" id="image-preview-container"></div>
+                        </div>
+                        
+                        <div class="height-input-section">
+                            <div class="height-input">
+                                <input type="number" id="user-height-input" placeholder="e.g. 180 or 5.9">
+                                <select id="height-unit">
+                                    <option value="cm">cm</option>
+                                    <option value="ft">ft</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="upload-btn analyze-btn" id="analyze-btn">
+                        <span class="btn-text">Analyze Height</span>
+                        <div class="spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </div>
+            <div class="right-content">
+                <img src="src/4.png" alt="Silhouette" class="silhouette">
+            </div>
+        </div>
+
+        <!-- Results Page (initially hidden) -->
+        <div id="results-page" class="results-container" style="display: none;">
+            <h2>Your Results</h2>
+            <div class="height-result">Your self-reported height: <span id="user-height"></span></div>
+            <div class="height-result ai-result">AI Estimated Height: <span id="ai-height-result"></span></div>
+            <p>Confidence level: <span id="confidence-level">Experimental</span></p>
+            
+            <div class="hall-of-fame">
+                <h3>Hall of Fame</h3>
+                <p>See where you stand (based on your input):</p>
+                <div class="height-scale">
+                    <div class="your-height" id="your-height-marker">You</div>
+                </div>
+                <p id="hall-of-fame-text">You are average height.</p>
+            </div>
+            
+            <button class="upload-btn" id="reset-btn">Try Another Photo</button>
+        </div>
+    </main>
+
+    <!-- Footer with About Section -->
+    <footer class="footer-container">
+        <h2>About</h2>
+        <div class="about-content">
+            <div class="about-column">
+                <p>Hi, I'm Evin John, the creator of this tool. I'm passionate about combining technology and fitness to help people understand their bodies better.</p>
+                <a href="https://github.com/evinjohnn" target="_blank" class="about-button">Evin John on GitHub</a>
+            </div>
+            <div class="about-column">
+                <h3>How It Works</h3>
+                <p>This app uses Groq's LLaVA model to analyze your photo and estimate height. It's fast, fun, and for entertainment purposes only!</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

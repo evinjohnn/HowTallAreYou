@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HowTallAreYou? - AI Height Guesser</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Futura, "Trebuchet MS", Arial, sans-serif;
+            height: 100%;
+        }
+        .container {
+            display: flex;
+            height: calc(100% - 40px);
+            padding-bottom: 20px; 
+            padding-top: 20px; 
+            background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%);
+            box-shadow: 0 15px 40px rgba(104, 48, 48, 0.15);
+            overflow: hidden;
+        }
+        .left-content, .right-content {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 18px;
+            color: #666666;
+            margin-bottom: 30px;
+        }
+        .upload-btn {
+            background-color: #000;
+            display: inline-flex;
+            color: #fff;
+            padding: 1vh 8vw;
+            border: none;
+            border-radius: 100px;
+            font-size: 17.5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .upload-btn:disabled {
+            background-color: #888;
+            cursor: not-allowed;
+        }
+        .upload-btn:not(:disabled):hover {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+        .silhouette {
+            height: 80%;
+            max-width: 100%;
+            transition: all 0.5s ease;
+            margin-left: 1vw;
+        }
+        .silhouette:hover {
+            transform: scale(1.05) rotate(5deg);
+        }
+        .logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            animation: float 4s ease-in-out infinite;
+        }
+        .logo-image {
+            height: 90px;
+            width: auto;
+            margin-right: -20px;
+        }
+        .results-container {
+            text-align: center;
+            padding: 40px;
+        }
+        .height-result {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        .hall-of-fame {
+            margin-top: 40px;
+        }
+        .height-scale {
+            width: 100%;
+            height: 40px;
+            background-color: #f0f0f0;
+            position: relative;
+            margin-top: 20px;
+        }
+        .your-height {
+            position: absolute;
+            height: 100%;
+            background-color: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            padding: 0 10px;
+            border-radius: 5px;
+        }
+        body {
+            background: linear-gradient(135deg, #ffffff 0%, #ababb0 100%);
+        }
+        .logo {
+            animation: float 3s ease-in-out infinite;
+            color: #000;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .content-box {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 25px;
+            padding: 30px 50px 30px 30px;
+            margin: 70vh 0vh 60vh 4vw;
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1);
+        }
+        .image-upload-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 340px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .uploaded-image-container {
+            position: relative;
+            width: 75px;
+            height: 75px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .uploaded-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .remove-image {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .height-input {
+            margin-top: 7.5px;
+            display:inline-flexbox;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            width: 20vw;
+        }
+        .height-input input, .height-input select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #000;
+            border-radius: 20px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .height-input input:focus, .height-input select:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            margin-right: 0vw;
+        }
+        .upload-section {
+            flex: 1;
+            margin-right: 4vw;
+        }
+        .height-input-section {
+            flex: 1;
+        }
+        .height-input {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .analyze-btn {
+            display:block;
+            margin: 20px auto 0;
+        }
+        /* About section styles are omitted for brevity but remain the same */
+        .about-container { max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
+        .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; }
+        .about-content { display: flex; justify-content: space-between; align-items: flex-start; }
+        .about-left-column { width: 45%; background-color: rgba(0, 0, 0, 0.7); border-radius: 20px; padding: 20px; box-sizing: border-box; color: white; }
+        .profile-pic { width: 60px; height: 60px; border-radius: 50%; background-color: #666; margin-bottom: 20px; }
+        .about-button { background-color: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 100px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        .about-right-column { width: 45%; color: #000; }
+        .about-right-column h3 { font-size: 24px; margin-bottom: 15px; }
+        .about-right-column p { font-size: 16px; line-height: 1.6; }
+
+        @media (max-width: 1024px) {
+            .container { flex-direction: column; height: auto; }
+            .left-content, .right-content { width: 100%; }
+            .content-box { margin: 20px; padding: 20px; }
+            .silhouette { height: auto; max-width: 80%; margin: 20px 0; }
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 36px; }
+            p { font-size: 16px; }
+            .upload-btn { padding: 10px 20px; font-size: 16px; }
+            .input-container { flex-direction: column; }
+            .upload-section, .height-input-section { width: 100%; margin-right: 0; margin-bottom: 15px; }
+            .height-input { width: 100%; }
+            .about-content { flex-direction: column; }
+            .about-left-column, .about-right-column { width: 100%; margin-bottom: 20px; }
+        }
+        .logo-container { display: flex; align-items: center; }
+        .website-name { font-size: 20px; font-weight: bold; white-space: nowrap; }
+        .container { padding-top: 100px; }
+    </style>
+</head>
+<body>
+    <div class="logo" id="logo">
+        <div class="logo-container">
+            <img src="src/2.jpg-removebg-preview.png" class="logo-image" alt="Logo">
+            <span class="website-name">HowTallAreYou?</span>
+        </div>
+    </div>
+
+    <!-- Landing Page -->
+    <div id="landing-page" class="container">
+        <div class="left-content">
+            <div class="content-box">
+                <h1>Stop Capping</h1>
+                <p>Be the real you - our AI-powered height guessing app takes the guesswork out of your true height. Upload a photo and enter your known height to see your real stats.</p>
+                
+                <div class="input-container">
+                    <div class="upload-section">
+                        <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('image-upload').click()">Upload Images</button>
+                        <div class="image-upload-container" id="image-preview-container"></div>
+                    </div>
+                    
+                    <div class="height-input-section">
+                        <div class="height-input">
+                            <input type="number" id="user-height-input" placeholder="e.g. 180 or 5.9">
+                            <select id="height-unit">
+                                <option value="cm">cm</option>
+                                <option value="ft">ft</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="upload-btn analyze-btn" onclick="analyzeHeight()">Analyze Height</button>
+            </div>
+        </div>
+        <div class="right-content">
+            <img src="src/4.png" alt="Silhouette" class="silhouette">
+        </div>
+    </div>
+
+    <!-- Results Page (initially hidden) -->
+    <div id="results-page" class="results-container" style="display: none;">
+        <h2>Your Results</h2>
+        <div class="height-result">Your self-reported height: <span id="user-height"></span></div>
+        <div class="height-result" style="color: #4CAF50; font-weight: bold;">AI Estimated Height: <span id="ai-height-result"></span></div>
+        <p>Confidence level: <span id="confidence-level">Experimental</span></p>
+        
+        <div class="hall-of-fame">
+            <h3>Hall of Fame</h3>
+            <p>See where you stand compared to other users (based on your input):</p>
+            <div class="height-scale">
+                <div class="your-height" style="width: auto; left: 50%;">You</div>
+            </div>
+            <p id="hall-of-fame-text">You are average height.</p>
+        </div>
+        
+        <button class="upload-btn" onclick="showLandingPage()">Try Another Photo</button>
+    </div>
+    
+    <!-- About section remains the same -->
+    <div class="about-container">
+        <h2>About</h2>
+        <div class="about-content">
+            <div class="about-left-column">
+                <div class="profile-pic"></div>
+                <p style="color: #f0f0f0;">Hi, I'm Evin John, the creator of this height estimation tool.</p>
+                <p style="color: #e0e0e0;">I'm passionate about combining technology and fitness to help people understand their bodies better.</p>
+                <button class="about-button">Evin John</button>
+            </div>
+            <div class="about-right-column">
+                <h3>How It Works</h3>
+                <p>Our height guessing algorithm uses Groq's LLaVA model (Large Language and Vision Assistant) to analyze your uploaded photo and provide an estimate of your height. It's fast, fun, and experimental!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IMPORTANT: Replace with your actual Groq API key
+        const GROQ_API_KEY = "YOUR_GROQ_API_KEY_HERE"; 
+        
+        let uploadedImages = [];
+        const MAX_IMAGES = 4;
+
+        document.getElementById('image-upload').addEventListener('change', function(event) {
+            const files = event.target.files;
+            const remainingSlots = MAX_IMAGES - uploadedImages.length;
+            const filesToProcess = Math.min(files.length, remainingSlots);
+
+            for (let i = 0; i < filesToProcess; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImages.push(e.target.result);
+                    updateImagePreview();
+                }
+                reader.readAsDataURL(file);
+            }
+            if (uploadedImages.length >= MAX_IMAGES) {
+                document.getElementById('image-upload').disabled = true;
+            }
+        });
+
+        function updateImagePreview() {
+            const container = document.getElementById('image-preview-container');
+            container.innerHTML = '';
+            uploadedImages.forEach((image, index) => {
+                const div = document.createElement('div');
+                div.className = 'uploaded-image-container';
+                div.innerHTML = `
+                    <img src="${image}" alt="Uploaded image ${index + 1}">
+                    <button class="remove-image" onclick="removeImage(${index})">×</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeImage(index) {
+            uploadedImages.splice(index, 1);
+            updateImagePreview();
+            document.getElementById('image-upload').disabled = false;
+        }
+
+        async function analyzeHeight() {
+            const userHeightInput = document.getElementById('user-height-input').value;
+            const heightUnit = document.getElementById('height-unit').value;
+            const analyzeBtn = document.querySelector('.analyze-btn');
+
+            if (uploadedImages.length === 0) {
+                alert('Please upload at least one image.');
+                return;
+            }
+            if (!userHeightInput) {
+                alert('Please enter your height.');
+                return;
+            }
+             if (GROQ_API_KEY === "YOUR_GROQ_API_KEY_HERE") {
+                alert("Please replace 'YOUR_GROQ_API_KEY_HERE' in the script with your actual Groq API key.");
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+            
+            let aiResultText = "Failed to get a result."; // Default message
+
+            try {
+                // We use the first image for analysis
+                const base64Data = uploadedImages[0].split(',')[1];
+
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${GROQ_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Analyze the person in this image. Estimate their height in centimeters. Respond with ONLY the numerical value (e.g., '175'). Do not add units, text, or any other explanation. If you cannot determine the height, respond with '0'."
+                                    },
+                                    {
+                                        "type": "image_url",
+                                        "image_url": { "url": `data:image/jpeg;base64,${base64Data}` }
+                                    }
+                                ]
+                            }
+                        ],
+                        "model": "llava-llama-3-8b-beta",
+                        "max_tokens": 10
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const data = await response.json();
+                const aiHeightCmText = data.choices[0].message.content.trim();
+                const aiHeightCm = parseFloat(aiHeightCmText);
+
+                if (isNaN(aiHeightCm) || aiHeightCm <= 0) {
+                    aiResultText = "Could not determine height from the image.";
+                } else {
+                    const totalInches = aiHeightCm / 2.54;
+                    const feet = Math.floor(totalInches / 12);
+                    const inches = Math.round(totalInches % 12);
+                    aiResultText = `${Math.round(aiHeightCm)} cm (~${feet}'${inches}")`;
+                }
+
+            } catch (error) {
+                console.error("Error analyzing height:", error);
+                aiResultText = `Error: ${error.message}. Check console.`;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Height';
+                showResultsPage(userHeightInput, heightUnit, aiResultText);
+            }
+        }
+
+        function showResultsPage(userHeight, heightUnit, aiResultText) {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('results-page').style.display = 'block';
+
+            // Display AI result
+            document.getElementById('ai-height-result').textContent = aiResultText;
+
+            // Format and display user's reported height
+            let userHeightCm;
+            let formattedUserHeight;
+            const userHeightNum = parseFloat(userHeight);
+
+            if (heightUnit === 'cm') {
+                userHeightCm = userHeightNum;
+                const totalInches = userHeightCm / 2.54;
+                const feet = Math.floor(totalInches / 12);
+                const inches = Math.round(totalInches % 12);
+                formattedUserHeight = `${userHeightCm} cm (~${feet}'${inches}")`;
+            } else { // 'ft'
+                userHeightCm = userHeightNum * 30.48;
+                const feet = Math.floor(userHeightNum);
+                const inches = Math.round((userHeightNum - feet) * 12);
+                formattedUserHeight = `${feet}'${inches}" (~${Math.round(userHeightCm)} cm)`;
+            }
+            document.getElementById('user-height').textContent = formattedUserHeight;
+
+            // Update Hall of Fame based on user's input height
+            let percentile = 50; // Default
+            if (userHeightCm) {
+                // Simple scale: 150cm = 10%, 175cm = 50%, 200cm = 90%
+                percentile = Math.max(0, Math.min(100, ((userHeightCm - 150) / (200 - 150)) * 80 + 10));
+            }
+            document.querySelector('.your-height').style.left = `calc(${percentile}% - 20px)`; // Center the 'You' marker
+            document.getElementById('hall-of-fame-text').textContent = `You are taller than ~${Math.round(percentile)}% of users`;
+        }
+
+        function showLandingPage() {
+            document.getElementById('landing-page').style.display = 'flex';
+            document.getElementById('results-page').style.display = 'none';
+            document.getElementById('image-upload').value = '';
+            uploadedImages = [];
+            updateImagePreview();
+            document.getElementById('user-height-input').value = '';
+        }
+    </script>
+</body>
+</html>
