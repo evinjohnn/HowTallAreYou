@@ -1,164 +1,45 @@
-/* General & Body Styles */
-body, html {
-    margin: 0;
-    padding: 0;
-    font-family: Futura, "Trebuchet MS", Arial, sans-serif;
-    height: 100%;
-    background: linear-gradient(135deg, #ffffff 0%, #ababb0 100%);
-    overflow-x: hidden; /* Prevents horizontal scroll */
+/* style.css */
+
+/* --- New Report Styles --- */
+.results-container {
+    padding: 60px 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: left;
 }
 
-h1 { font-size: 48px; margin-bottom: 20px; }
-h2 { font-size: 36px; margin-bottom: 20px; text-align: center; color: #000; }
-p { font-size: 18px; color: #666666; margin-bottom: 30px; }
-
-/* Logo - Restored Original Look */
-.logo {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    animation: float 3s ease-in-out infinite;
-}
-.logo-container { display: flex; align-items: center; }
-.logo-image {
-    height: 60px; /* Adjusted for better scale */
-    width: auto;
-    margin-right: -15px; /* Restored negative margin to pull text closer */
-}
-.website-name { font-size: 20px; font-weight: bold; color: #000; white-space: nowrap; }
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+.results-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
 }
 
-/* Main Container & Layout - The KEY fix */
-.container {
-    display: flex;
-    height: calc(100% - 40px);
+.report-box {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
     padding: 20px;
-    overflow: hidden;
-}
-.left-content, .right-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.content-box {
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 25px;
-    padding: 30px 40px;
-    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1);
-    /* THIS IS THE MOST IMPORTANT RULE FROM YOUR ORIGINAL DESIGN */
-    margin: 70vh 0vh 60vh 4vw;
-    width: 100%;
-    max-width: 550px;
-    box-sizing: border-box;
-}
-.silhouette {
-    height: 80%;
-    max-width: 100%;
-    transition: transform 0.5s ease;
-}
-.silhouette:hover {
-    transform: scale(1.05) rotate(5deg);
-}
-
-/* Forms & Inputs */
-.input-container {
-    display: flex;
-    align-items: center;
     margin-bottom: 20px;
-    gap: 20px;
-}
-.upload-section { flex: 1.5; }
-.height-input-section { flex: 1; }
-.height-input { display: flex; gap: 10px; }
-.height-input input, .height-input select {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: 2px solid #000;
-    border-radius: 20px;
-    outline: none;
-    transition: all 0.3s ease;
-}
-.height-input input:focus, .height-input select:focus {
-    border-color: #4CAF50;
-    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
-/* Image Preview */
-.image-upload-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 15px;
-}
-.uploaded-image-container {
-    position: relative; width: 75px; height: 75px;
-    border-radius: 10px; overflow: hidden;
-}
-.uploaded-image-container img { width: 100%; height: 100%; object-fit: cover; }
-.remove-image {
-    position: absolute; top: 2px; right: 2px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+.report-box h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
 }
 
-/* Buttons & Interactive Elements */
-.upload-btn {
-    background-color: #000;
-    color: #fff;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 100px;
-    font-size: 17.5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    white-space: nowrap;
-}
-.upload-btn:disabled { background-color: #888; cursor: not-allowed; }
-.upload-btn:not(:disabled):hover { background-color: #333; transform: translateY(-2px); }
-.analyze-btn { display: block; margin: 20px 0 0 0; width: 100%; }
-.spinner {
-    width: 18px; height: 18px; border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.error-message {
-    color: #D8000C; background-color: #FFD2D2; border: 1px solid #D8000C;
-    border-radius: 10px; padding: 10px; margin-bottom: 15px; text-align: center; display: none;
+.report-box p {
+    color: #555;
+    line-height: 1.6;
 }
 
-/* Results Page */
-.results-container { text-align: center; padding: 100px 40px 40px; display: none; }
-.height-result { font-size: 28px; margin-bottom: 20px; }
-.ai-result { color: #4CAF50; font-weight: bold; }
+.report-box.caveats {
+    background: #fffbe6; /* A light yellow for warnings */
+    border: 1px solid #ffe58f;
+}
 
-/* Original About Section */
-.about-container {
-    max-width: 800px; margin: 40px auto; padding: 30px;
-    border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+#reset-btn {
+    display: block;
+    margin: 40px auto 0;
 }
-.about-content { display: flex; justify-content: space-between; gap: 30px; align-items: flex-start; }
-.about-left-column {
-    width: 45%; background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 20px; padding: 20px; box-sizing: border-box; color: white;
-}
-.about-left-column p { color: #f0f0f0; }
-.profile-pic { width: 60px; height: 60px; border-radius: 50%; background-color: #666; margin-bottom: 20px; }
-.about-button {
-    background-color: #000; color: #fff; border: none; padding: 10px 20px;
-    border-radius: 100px; font-size: 16px; cursor: pointer; margin-top: 20px;
-}
-.about-right-column { width: 45%; }
-.about-right-column h3 { font-size: 24px; margin-bottom: 15px; color: #000; }
-.about-right-column p { font-size: 16px; line-height: 1.6; color: #333; }

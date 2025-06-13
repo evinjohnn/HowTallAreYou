@@ -1,65 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HowTallAreYou? - AI Height Guesser</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="logo" id="logo">
-        <div class="logo-container">
-            <img src="src/2.jpg-removebg-preview.png" class="logo--image" alt="Logo">
-            <span class="website-name">HowTallAreYou?</span>
-        </div>
+<!-- In index.html, find and replace the entire #results-page div -->
+
+<div id="results-page" class="results-container" style="display: none;">
+    <h2>Your Height Analysis</h2>
+
+    <div class="report-box">
+        <h3>Final Estimation</h3>
+        <p id="report-estimation">---</p>
     </div>
 
-    <div id="landing-page" class="container">
-        <div class="left-content">
-            <div class="content-box">
-                <h1>Stop Capping</h1>
-                <p>Be the real you - our AI-powered height guessing app takes the guesswork out of your true height. Upload a photo and enter your known height to see your real stats.</p>
-                
-                <div id="error-message" class="error-message"></div>
-
-                <div class="input-container">
-                    <div class="upload-section">
-                        <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
-                        <button class="upload-btn" id="upload-btn">Upload Images</button>
-                    </div>
-                    
-                    <div class="height-input-section">
-                        <div class="height-input">
-                            <input type="number" id="user-height-input" placeholder="e.g. 180 or 5.9">
-                            <select id="height-unit">
-                                <option value="cm">cm</option>
-                                <option value="ft">ft</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="image-upload-container" id="image-preview-container"></div>
-                
-                <button class="upload-btn analyze-btn" id="analyze-btn">
-                    <span class="btn-text">Analyze Height</span>
-                    <div class="spinner" style="display: none;"></div>
-                </button>
-            </div>
-        </div>
-        <div class="right-content">
-            <img src="src/4.png" alt="Silhouette" class="silhouette">
-        </div>
+    <div class="report-box">
+        <h3>Methodology</h3>
+        <p id="report-methodology">---</p>
     </div>
 
-    <div id="results-page" class="results-container">
-        <!-- Results will be populated by JS -->
-    </div>
-    
-    <div class="about-container">
-        <!-- About section will be populated by JS when needed, or just leave it static -->
+    <div class="report-box">
+        <h3>Confidence Score</h3>
+        <p id="report-confidence">---</p>
     </div>
 
-    <script src="script.js"></script>
-</body>
-</html>
+    <div class="report-box caveats">
+        <h3>Caveats & Limitations</h3>
+        <p id="report-caveats">---</p>
+    </div>
+
+    <button class="upload-btn" id="reset-btn">Analyze Another Photo</button>
+</div>

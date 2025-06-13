@@ -1,22 +1,22 @@
+// In script.js
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element Selectors ---
     const imageUploadInput = document.getElementById('image-upload');
-    const uploadBtn = document.getElementById('upload-btn'); // Added this
+    const uploadBtn = document.getElementById('upload-btn');
     const imagePreviewContainer = document.getElementById('image-preview-container');
     const analyzeBtn = document.getElementById('analyze-btn');
     const resetBtn = document.getElementById('reset-btn');
-    const userHeightInput = document.getElementById('user-height-input');
-    const heightUnitSelect = document.getElementById('height-unit');
+    // userHeightInput and heightUnitSelect are no longer needed as the AI handles height estimation
     const errorMessageDiv = document.getElementById('error-message');
     const landingPage = document.getElementById('landing-page');
     const resultsPage = document.getElementById('results-page');
-    
+
     // --- State Management ---
     let uploadedImages = [];
     const MAX_IMAGES = 4;
 
     // --- Event Listeners ---
-    uploadBtn.addEventListener('click', () => imageUploadInput.click()); // Added this
+    uploadBtn.addEventListener('click', () => imageUploadInput.click());
     imageUploadInput.addEventListener('change', handleImageUpload);
     analyzeBtn.addEventListener('click', handleAnalysis);
     resetBtn.addEventListener('click', showLandingPage);
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateImagePreview();
         imageUploadInput.disabled = false;
     }
-    
+
     function showError(message) {
         errorMessageDiv.textContent = message;
         errorMessageDiv.style.display = 'block';
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleLoading(isLoading) {
         const btnText = analyzeBtn.querySelector('.btn-text');
         const spinner = analyzeBtn.querySelector('.spinner');
-        
+
         analyzeBtn.disabled = isLoading;
         if (isLoading) {
             btnText.style.display = 'none';
@@ -87,20 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- This is the main function to modify ---
     async function handleAnalysis() {
         hideError();
-        
+
         if (uploadedImages.length === 0) {
             showError('Please upload at least one image.');
             return;
         }
-        if (!userHeightInput.value) {
-            showError('Please enter your height.');
-            return;
-        }
+        // No need to check for userHeightInput anymore, the AI does it all!
 
         toggleLoading(true);
-        let aiResultText = "Failed to get a result.";
 
         try {
             const response = await fetch('/api/analyze', {
@@ -109,24 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ image: uploadedImages[0] })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'API request failed');
-            }
-
             const data = await response.json();
-            const aiHeightCmText = data.result.trim();
-            const aiHeightCm = parseFloat(aiHeightCmText);
 
-            if (isNaN(aiHeightCm) || aiHeightCm <= 0) {
-                aiResultText = "Could not determine height from the image.";
-            } else {
-                const totalInches = aiHeightCm / 2.54;
-                const feet = Math.floor(totalInches / 12);
-                const inches = Math.round(totalInches % 12);
-                aiResultText = `${Math.round(aiHeightCm)} cm (~${feet}'${inches}")`;
+            if (!response.ok) {
+                // If the server sent a specific error message, use it
+                throw new Error(data.error || 'API request failed');
             }
-            showResultsPage(userHeightInput.value, heightUnitSelect.value, aiResultText);
+
+            // We now have the structured report object
+            showResultsPage(data);
 
         } catch (error) {
             console.error("Error analyzing height:", error);
@@ -136,47 +124,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showResultsPage(userHeight, heightUnit, aiResultText) {
+    // --- This function is now responsible for displaying the report ---
+    function showResultsPage(report) {
         landingPage.style.display = 'none';
         resultsPage.style.display = 'block';
 
-        document.getElementById('ai-height-result').textContent = aiResultText;
+        // Populate the report fields
+        document.getElementById('report-estimation').textContent = report.estimation || "Not available.";
+        document.getElementById('report-methodology').textContent = report.methodology || "Not available.";
+        document.getElementById('report-confidence').textContent = report.confidenceScore || "Not available.";
+        document.getElementById('report-caveats').textContent = report.caveats || "None.";
 
-        let userHeightCm;
-        let formattedUserHeight;
-        const userHeightNum = parseFloat(userHeight);
-
-        if (heightUnit === 'cm') {
-            userHeightCm = userHeightNum;
-            const totalInches = userHeightCm / 2.54;
-            const feet = Math.floor(totalInches / 12);
-            const inches = Math.round(totalInches % 12);
-            formattedUserHeight = `${userHeightCm} cm (~${feet}'${inches}")`;
-        } else {
-            const feet = Math.floor(userHeightNum);
-            const inches = Math.round((userHeightNum - feet) * 12);
-            userHeightCm = (feet * 12 + inches) * 2.54;
-            formattedUserHeight = `${feet}'${inches}" (~${Math.round(userHeightCm)} cm)`;
+        // Hide or remove the user height comparison elements if they are no longer relevant
+        // For example, if you have a div with id 'user-height-comparison-section'
+        const userHeightComparisonSection = document.getElementById('user-height-comparison-section');
+        if (userHeightComparisonSection) {
+            userHeightComparisonSection.style.display = 'none';
         }
-        document.getElementById('user-height').textContent = formattedUserHeight;
-
-        let percentile = 50;
-        if (userHeightCm) {
-            percentile = Math.max(0, Math.min(100, ((userHeightCm - 150) / (200 - 150)) * 80 + 10));
-        }
-        document.getElementById('your-height-marker').style.left = `${percentile}%`;
-        document.getElementById('hall-of-fame-text').textContent = `You are taller than ~${Math.round(percentile)}% of users`;
     }
 
     function showLandingPage() {
         landingPage.style.display = 'flex';
         resultsPage.style.display = 'none';
         hideError();
-        
+
         imageUploadInput.value = '';
         imageUploadInput.disabled = false;
         uploadedImages = [];
         updateImagePreview();
-        userHeightInput.value = '';
+        // userHeightInput is no longer relevant, so no need to clear it
     }
 });
