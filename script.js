@@ -1,17 +1,14 @@
-// In script.js
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element Selectors ---
     const imageUploadInput = document.getElementById('image-upload');
     const uploadBtn = document.getElementById('upload-btn');
     const imagePreviewContainer = document.getElementById('image-preview-container');
     const analyzeBtn = document.getElementById('analyze-btn');
-    const resetBtn = document.getElementById('reset-btn');
-    // userHeightInput and heightUnitSelect are no longer needed as the AI handles height estimation
     const errorMessageDiv = document.getElementById('error-message');
     const landingPage = document.getElementById('landing-page');
     const resultsPage = document.getElementById('results-page');
+    const aboutContainer = document.querySelector('.about-container');
 
-    // --- State Management ---
     let uploadedImages = [];
     const MAX_IMAGES = 4;
 
@@ -19,27 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadBtn.addEventListener('click', () => imageUploadInput.click());
     imageUploadInput.addEventListener('change', handleImageUpload);
     analyzeBtn.addEventListener('click', handleAnalysis);
-    resetBtn.addEventListener('click', showLandingPage);
 
-    // --- Functions ---
     function handleImageUpload(event) {
-        const files = event.target.files;
+        const files = Array.from(event.target.files);
         const remainingSlots = MAX_IMAGES - uploadedImages.length;
-        const filesToProcess = Math.min(files.length, remainingSlots);
-
-        for (let i = 0; i < filesToProcess; i++) {
-            const file = files[i];
-            if (!file.type.startsWith('image/')) continue;
+        
+        files.slice(0, remainingSlots).forEach(file => {
+            if (!file.type.startsWith('image/')) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 uploadedImages.push(e.target.result);
                 updateImagePreview();
             };
             reader.readAsDataURL(file);
-        }
-        if (uploadedImages.length >= MAX_IMAGES) {
-            imageUploadInput.disabled = true;
-        }
+        });
     }
 
     function updateImagePreview() {
@@ -54,29 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
             imagePreviewContainer.appendChild(div);
         });
         document.querySelectorAll('.remove-image').forEach(button => {
-            button.addEventListener('click', (e) => removeImage(e.target.dataset.index));
+            button.addEventListener('click', (e) => removeImage(parseInt(e.target.dataset.index, 10)));
         });
+        analyzeBtn.disabled = uploadedImages.length === 0;
     }
 
     function removeImage(index) {
         uploadedImages.splice(index, 1);
         updateImagePreview();
-        imageUploadInput.disabled = false;
     }
 
     function showError(message) {
         errorMessageDiv.textContent = message;
+        errorMessageDiv.className = 'error-message'; // Ensure class for styling
         errorMessageDiv.style.display = 'block';
     }
 
     function hideError() {
         errorMessageDiv.style.display = 'none';
+        errorMessageDiv.textContent = '';
     }
 
     function toggleLoading(isLoading) {
         const btnText = analyzeBtn.querySelector('.btn-text');
         const spinner = analyzeBtn.querySelector('.spinner');
-
         analyzeBtn.disabled = isLoading;
         if (isLoading) {
             btnText.style.display = 'none';
@@ -87,71 +78,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- This is the main function to modify ---
     async function handleAnalysis() {
         hideError();
-
         if (uploadedImages.length === 0) {
-            showError('Please upload at least one image.');
+            alert('Please upload at least one image.');
             return;
         }
-        // No need to check for userHeightInput anymore, the AI does it all!
-
         toggleLoading(true);
 
         try {
             const response = await fetch('/api/analyze', {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: uploadedImages[0] })
+                body: JSON.stringify({ images: uploadedImages }) 
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                // If the server sent a specific error message, use it
-                throw new Error(data.error || 'API request failed');
-            }
-
-            // We now have the structured report object
-            showResultsPage(data);
+            if (!response.ok) throw new Error(data.error || 'API request failed');
+            
+            showResultsPageUI(data);
 
         } catch (error) {
             console.error("Error analyzing height:", error);
             showError(`Analysis failed: ${error.message}`);
-        } finally {
             toggleLoading(false);
         }
     }
 
-    // --- This function is now responsible for displaying the report ---
-    function showResultsPage(report) {
+    function showResultsPageUI(report) {
         landingPage.style.display = 'none';
         resultsPage.style.display = 'block';
+        aboutContainer.style.display = 'none'; // Hide about section on results page
+        
+        document.getElementById('reset-btn').addEventListener('click', showLandingPageUI);
 
-        // Populate the report fields
-        document.getElementById('report-estimation').textContent = report.estimation || "Not available.";
-        document.getElementById('report-methodology').textContent = report.methodology || "Not available.";
-        document.getElementById('report-confidence').textContent = report.confidenceScore || "Not available.";
-        document.getElementById('report-caveats').textContent = report.caveats || "None.";
+        document.getElementById('report-estimation').textContent = report.estimation || "---";
+        document.getElementById('report-methodology').textContent = report.methodology || "---";
+        document.getElementById('report-posture').textContent = report.postureCorrection || "---";
+        document.getElementById('report-confidence').textContent = report.confidenceScore || "---";
+        document.getElementById('report-caveats').textContent = report.caveats || "---";
 
-        // Hide or remove the user height comparison elements if they are no longer relevant
-        // For example, if you have a div with id 'user-height-comparison-section'
-        const userHeightComparisonSection = document.getElementById('user-height-comparison-section');
-        if (userHeightComparisonSection) {
-            userHeightComparisonSection.style.display = 'none';
+        const viz = report.visualizationData;
+        if (viz && viz.sourceImageIndex !== undefined) {
+            const sourceImage = new Image();
+            sourceImage.src = uploadedImages[viz.sourceImageIndex];
+            
+            sourceImage.onload = () => {
+                const canvas = document.getElementById('analysis-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = sourceImage.naturalWidth;
+                canvas.height = sourceImage.naturalHeight;
+                ctx.drawImage(sourceImage, 0, 0);
+
+                const drawBox = (box, color, label) => {
+                    if(!box) return;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = Math.max(4, sourceImage.naturalWidth * 0.005);
+                    ctx.strokeRect(box.x, box.y, box.w, box.h);
+                    ctx.fillStyle = color;
+                    ctx.font = `bold ${Math.max(16, sourceImage.naturalWidth * 0.02)}px sans-serif`;
+                    ctx.fillText(label, box.x, box.y - 10);
+                };
+                drawBox(viz.personBox, '#39FF14', 'Subject');
+                drawBox(viz.referenceBox, '#FF1493', 'Reference');
+            };
         }
     }
 
-    function showLandingPage() {
-        landingPage.style.display = 'flex';
+    function showLandingPageUI() {
         resultsPage.style.display = 'none';
+        landingPage.style.display = 'flex';
+        aboutContainer.style.display = 'block'; // Show about section again
         hideError();
-
         imageUploadInput.value = '';
-        imageUploadInput.disabled = false;
         uploadedImages = [];
         updateImagePreview();
-        // userHeightInput is no longer relevant, so no need to clear it
+        toggleLoading(false);
     }
 });
