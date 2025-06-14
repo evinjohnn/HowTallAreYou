@@ -24,7 +24,7 @@
         .logo-image { height: 90px; width: auto; margin-right: -20px; }
         .website-name { font-size: 20px; white-space: nowrap; }
 
-        /* --- ISSUE 1 FIXED: Usage Counter now also vanishes --- */
+        /* --- Usage Counter --- */
         .usage-counter {
             position: fixed; top: 28px; right: 20px; background-color: rgba(0, 0, 0, 0.05);
             color: #333; padding: 8px 16px; border-radius: 99px; font-size: 0.9rem;
@@ -100,12 +100,13 @@
             .usage-counter { 
                 right: 10px; 
                 top: 18px; 
-                /* --- ISSUE 2 FIXED: Smaller font on mobile --- */
                 font-size: 0.8rem;
                 padding: 6px 12px;
             }
         }
     </style>
+    <!-- Add the HEIC conversion library -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 </head>
 <body>
     <a href="/" class="logo" id="logo">
@@ -118,12 +119,11 @@
     </div>
 
     <main>
-        <!-- The rest of the body is the same and is correct -->
         <div id="landing-page" class="container">
             <div class="left-content">
                 <div class="content-box">
                     <h1>Stop Capping</h1>
-                    <p>Be the real you - our AI-powered height guessing app takes the guesswork out of your true height. Please upload a full body photos.</p>
+                    <p>Be the real you - our AI-powered height guessing app takes the guesswork out of your true height. Please upload up to four full body photos.</p>
                     <div class="upload-section">
                         <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
                         <button class="upload-btn" id="upload-btn">Upload Images</button>
@@ -170,16 +170,14 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const logo = document.getElementById('logo');
-        const usageCounter = document.getElementById('usage-counter'); // Get the usage counter element
+        const usageCounter = document.getElementById('usage-counter');
 
         window.addEventListener('scroll', () => {
             const isHidden = window.scrollY > 30;
             logo.classList.toggle('hidden', isHidden);
-            // ISSUE 1 FIXED: Also hide the usage counter on scroll
             usageCounter.classList.toggle('hidden', isHidden);
         });
 
-        // The rest of the JS is identical and correct
         const usageCountSpan = document.getElementById('usage-count');
         async function fetchUsage() {
             try {
@@ -216,24 +214,68 @@
         analyzeBtn.addEventListener('click', handleAnalysis);
         resetBtn.addEventListener('click', showLandingPageUI);
 
+        // --- NEW: Replaced function to handle HEIC conversion ---
         function handleImageUpload(event) {
-            const files = Array.from(event.target.files).slice(0, MAX_IMAGES);
-            uploadedImages = [];
-            let loadedCount = 0;
-            if(files.length === 0) { updateImagePreview(); return; }
-            
-            files.forEach(file => {
-                if (!file.type.startsWith('image/')) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadedImages.push(e.target.result);
-                    loadedCount++;
-                    if (loadedCount === files.length) {
-                        updateImagePreview();
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
+            // Use a self-executing async function to handle the logic
+            (async () => {
+                toggleLoading(true); // Show spinner during processing/conversion
+                hideError();
+
+                const files = Array.from(event.target.files).slice(0, MAX_IMAGES);
+                uploadedImages = []; // Keep original "replace" behavior
+                if (files.length === 0) {
+                    updateImagePreview();
+                    toggleLoading(false);
+                    return;
+                }
+
+                // Process each file, converting if necessary
+                const processingPromises = files.map(file => {
+                    return new Promise(async (resolve) => {
+                        // Skip non-image files
+                        if (!file.type.startsWith('image/')) {
+                            resolve(null);
+                            return;
+                        }
+
+                        let fileToProcess = file;
+                        // Check for HEIC/HEIF by file extension (more reliable than MIME type)
+                        const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+                        
+                        // If it's HEIC and the library is available, convert it
+                        if (isHeic && window.heic2any) {
+                            console.log(`HEIC file detected: ${file.name}. Converting to JPEG...`);
+                            try {
+                                const convertedBlob = await heic2any({
+                                    blob: file,
+                                    toType: "image/jpeg",
+                                    quality: 0.9 // Use good quality for analysis
+                                });
+                                fileToProcess = new File([convertedBlob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
+                                console.log(`Conversion successful for ${file.name}`);
+                            } catch (e) {
+                                console.error(`Could not convert HEIC file: ${file.name}`, e);
+                                showError(`Could not process ${file.name}. Please try a different photo.`);
+                                resolve(null); // Mark this file as failed
+                                return;
+                            }
+                        }
+
+                        // Read the original or converted file as a Data URL
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(fileToProcess);
+                    });
+                });
+
+                // Wait for all files to be processed
+                const results = await Promise.all(processingPromises);
+                uploadedImages = results.filter(Boolean); // Filter out any that failed
+
+                updateImagePreview(); // Show previews
+                toggleLoading(false); // Hide spinner
+            })();
         }
 
         function updateImagePreview() {
@@ -291,7 +333,9 @@
             }
         }
 
+        // --- NEW: Modified function to turn off spinner on results ---
         function showResultsPageUI(report) {
+            toggleLoading(false); // Hide spinner when results are shown
             landingPage.style.display = 'none';
             aboutContainer.style.display = 'none';
             resultsPage.style.display = 'block';

@@ -1,69 +1,44 @@
 // server.js
 
+// --- SETUP & DEPENDENCIES ---
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios'); // For making API calls
+const axios =require('axios');
 const path = require('path');
 
-const app = express();
-const port = process.env.PORT || 3000;
+// --- CONSTANTS & CONFIGURATION ---
+const PORT = process.env.PORT || 3000;
 
-// --- Azure & AI Credentials ---
-const azureKey = process.env.AZURE_VISION_KEY;
-const azureEndpoint = process.env.AZURE_VISION_ENDPOINT;
-const geminiKey = process.env.GEMINI_API_KEY;
+const AZURE_KEY = process.env.AZURE_VISION_KEY;
+const AZURE_ENDPOINT = process.env.AZURE_VISION_ENDPOINT;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-if (!azureKey || !azureEndpoint || !geminiKey) {
-    console.error('FATAL ERROR: Azure or Gemini credentials are not defined in your .env file.');
+if (!AZURE_KEY || !AZURE_ENDPOINT || !GEMINI_KEY) {
+    console.error('[FATAL ERROR] Azure or Gemini credentials are not defined in your .env file. Please check your configuration and restart.');
     process.exit(1);
 }
 
-// Middleware
-app.use(cors());
-app.use(express.static('.'));
-app.use(express.json({ limit: '50mb' })); // Increased limit for multiple images
+// --- AI KNOWLEDGE BASE: ANTHROPOMETRIC DATA (FOR PLAUSIBILITY CONTEXT) ---
+const ANTHROPOMETRIC_DATA = {
+    "Indian Men": {
+        "18-25 years": { "min_cm": 167, "max_cm": 172, "avg_ft_in": "5'6\" - 5'8\"" },
+        "26-35 years": { "min_cm": 168, "max_cm": 173, "avg_ft_in": "5'6\" - 5'8\"" },
+        "36-45 years": { "min_cm": 167, "max_cm": 172, "avg_ft_in": "5'6\" - 5'8\"" },
+        "46-60 years": { "min_cm": 165, "max_cm": 170, "avg_ft_in": "5'5\" - 5'7\"" },
+        "65+ years": { "note": "Heights may decline slightly with age." }
+    },
+    "Indian Women": {
+        "18-25 years": { "min_cm": 152, "max_cm": 160, "avg_ft_in": "5'0\" - 5'3\"" },
+        "26-35 years": { "min_cm": 154, "max_cm": 162, "avg_ft_in": "5'0.5\" - 5'4\"" },
+        "36-45 years": { "min_cm": 153, "max_cm": 161, "avg_ft_in": "5'0\" - 5'3.5\"" },
+        "46-60 years": { "min_cm": 151, "max_cm": 159, "avg_ft_in": "4'11.5\" - 5'2.5\"" },
+        "65+ years": { "note": "Heights may decline slightly with age." }
+    },
+    "notes": "This data is for contextual guidance and plausibility checks. The primary height estimation MUST be derived from the pixel-to-real-world ratio of a physical reference object."
+};
 
-
-// --- USAGE TRACKING LOGIC ---
-let hourlyApiCallCount = 20; // Start with 20 available calls
-
-function resetHourlyLimit() {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    
-    // Calculate milliseconds until the next hour
-    const msUntilNextHour = ( (59 - minutes) * 60 + (60 - seconds) ) * 1000;
-    
-    setTimeout(() => {
-        console.log(`HOURLY RESET: API call limit has been reset to 20.`);
-        hourlyApiCallCount = 20;
-        // Set up the next hourly reset
-        setInterval(() => {
-            console.log(`HOURLY RESET: API call limit has been reset to 20.`);
-            hourlyApiCallCount = 20;
-        }, 3600000); // 3,600,000 milliseconds = 1 hour
-    }, msUntilNextHour);
-
-    console.log(`Usage tracker initialized. Next reset in ${Math.round(msUntilNextHour / 60000)} minutes.`);
-}
-
-resetHourlyLimit(); // Initialize the reset timer when the server starts
-
-// --- NEW ENDPOINT TO GET USAGE ---
-app.get('/api/usage', (req, res) => {
-    res.json({
-        remaining: hourlyApiCallCount
-    });
-});
-
-
-// --- AI's Internal Knowledge Base: Standard Object Dimensions ---
-// This comprehensive list provides the AI with known dimensions for various objects,
-// categorized by reliability for use as reference points. All dimensions are primarily
-// in inches (in) and millimeters (mm) for precision, with feet (ft) and centimeters (cm)
-// provided where commonly used or for easier conversion.
+// --- AI KNOWLEDGE BASE: STANDARD OBJECT DIMENSIONS (COMPLETE & UNABRIDGED) ---
 const KNOWN_OBJECT_DIMENSIONS = {
     "TIER_S": { // Sovereign Standard: Globally fixed, highly precise dimensions. Ideal for scale.
         "credit_card": { "width_mm": 85.725, "height_mm": 53.975, "thickness_mm": 0.76, "width_in": 3.375, "height_in": 2.125, "thickness_in": 0.0299, "notes": "ISO/IEC 7810 ID-1 standard [4]" },
@@ -168,7 +143,6 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "stair_us_irc_rise_run_sum_approx": { "sum_in": 18, "notes": "IRC suggestion for comfort [40]" },
     },
     "TIER_C": { // Contextual Objects: Furniture, Appliances, Vehicles. Useful for broader scene scale and contextual validation.
-        // Furniture
         "sofa_three_seat": { "length_in_min": 73, "length_in_max": 87, "depth_in_min": 34, "depth_in_max": 40, "height_in_min": 30, "height_in_max": 35, "seat_depth_in_min": 22, "seat_depth_in_max": 28, "notes": "Standard living room sofa [42]" },
         "loveseat": { "length_in_min": 56, "length_in_max": 72, "depth_in_min": 34, "depth_in_max": 40, "height_in_min": 30, "height_in_max": 35, "seat_height_in_min": 17, "seat_height_in_max": 20, "seat_depth_in_min": 20, "seat_depth_in_max": 24, "notes": "Standard living room loveseat [42]" },
         "sofa_four_seater": { "width_in_min": 88, "width_in_max": 96, "depth_in_min": 34, "depth_in_max": 40, "height_in_min": 30, "height_in_max": 35, "notes": "Standard [42]" },
@@ -198,11 +172,9 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "bed_queen": { "width_in": 60, "length_in": 80, "width_cm": 152.5, "length_cm": 203.5, "notes": "Most popular and versatile size [44]" },
         "bed_king": { "width_in": 76, "length_in": 80, "width_cm": 193, "length_cm": 203.5, "notes": "Equivalent to two Twin XL mattresses [44]" },
         "bed_california_king": { "width_in": 72, "length_in": 84, "width_cm": 183, "length_cm": 213.5, "notes": "Slightly narrower but longer than standard King [44]" },
-        // Appliances
         "refrigerator_standard": { "width_in_min": 24, "width_in_max": 40, "height_in_min": 61, "height_in_max": 72, "depth_in_min": 28, "depth_in_max": 35, "capacity_cu_ft_min": 20, "capacity_cu_ft_max": 25, "notes": "General range for most refrigerators [45]" },
         "refrigerator_side_by_side": { "width_in_min": 30, "width_in_max": 36, "height_in_min": 67, "height_in_max": 70, "depth_in_min": 29, "depth_in_max": 35, "notes": "Standard style [45]" },
         "refrigerator_french_door": { "width_in_min": 30, "width_in_max": 36, "height_in_min": 67, "height_in_max": 70, "depth_in_min": 29, "depth_in_max": 35, "notes": "Standard style [45]" },
-        // Vehicles
         "car_compact": { "length_ft_min": 10, "length_ft_max": 14, "width_ft_min": 5.5, "width_ft_max": 6, "height_ft_min": 4.5, "height_ft_max": 5, "notes": "Smallest car option [24, 25]" },
         "car_mid_size": { "length_ft_min": 14, "length_ft_max": 16, "width_ft": 6, "height_ft_min": 5, "height_ft_max": 5.5, "notes": "Second-largest car option [24, 25]" },
         "car_full_size": { "length_ft_min": 16, "length_ft_max": 18, "width_ft_min": 6, "width_ft_max": 7, "height_ft_min": 5.5, "height_ft_max": 6, "notes": "Largest car option [24, 25]" },
@@ -214,7 +186,6 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "bus_school_full_size": { "length_ft_min": 35, "length_ft_max": 40, "width_ft": 8, "height_ft_min": 9.5, "height_ft_max": 10.5, "notes": "Iconic yellow school bus" },
         "bus_school_mini": { "length_ft_min": 20, "length_ft_max": 25, "width_ft": 7.5, "height_ft": 10, "notes": "Mini bus, 10-25 passengers" },
         "bus_coach": { "length_ft": 45, "width_ft": 8.5, "height_ft": 12, "notes": "Largest school bus type, up to 60 passengers" },
-        // --- START: Indian Vehicles ---
         "car_maruti_swift": { "length_mm": 3845, "width_mm": 1735, "height_mm": 1530, "length_ft": 12.61, "width_ft": 5.69, "height_ft": 5.02, "notes": "Extremely common hatchback in India." },
         "car_maruti_alto": { "length_mm": 3530, "width_mm": 1490, "height_mm": 1520, "length_ft": 11.58, "width_ft": 4.89, "height_ft": 4.99, "notes": "One of the most popular small cars in India." },
         "car_hyundai_creta": { "length_mm": 4300, "width_mm": 1790, "height_mm": 1635, "length_ft": 14.11, "width_ft": 5.87, "height_ft": 5.36, "notes": "Very popular compact SUV in India." },
@@ -228,205 +199,210 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "bus_ashok_leyland_city": { "length_mm": 12000, "width_mm": 2600, "height_mm": 2900, "length_ft": 39.37, "width_ft": 8.53, "height_ft": 9.51, "notes": "Standard city bus common in many Indian metropolitan areas." },
         "bus_tata_marcopolo_city": { "length_mm": 12000, "width_mm": 2550, "height_mm": 3100, "length_ft": 39.37, "width_ft": 8.36, "height_ft": 10.17, "notes": "Another very common city bus in India." },
         "bus_volvo_intercity": { "length_mm": 12000, "width_mm": 2600, "height_mm": 3600, "length_ft": 39.37, "width_ft": 8.53, "height_ft": 11.81, "notes": "Common inter-city/state luxury coach bus in India (e.g., 9400 B8R model)." }
-        // --- END: Indian Vehicles ---
     },
     "TIER_D": { // Least Reliable/Contextual Inference: Use with extreme caution, for rough estimates only.
         "human_body_parts": { "notes": "Highly individual, lack precision for robust AI estimations. E.g., knuckle (approx 1 inch), palm width (approx 4 inches), hand span (approx 8 inches). Use only if no other references are available, and state low confidence. [28]" }
     }
 };
 
-// --- The "APEX" AI Consciousness Prompt ---
-const spatialConsciousnessSystemPrompt = `
-You are the Apex Photogrammetry Engine. Your core function is to synthesize visual data from multiple image analyses to produce a single, highly accurate height estimation of a human subject. You will receive a dossier containing object-detection results from up to four separate images of the same subject. Your analysis is governed by the Apex Fusion Protocol, leveraging a comprehensive internal knowledge base of standard object dimensions.
+// --- AI "APEX" CONSCIOUSNESS PROMPT ---
+// IMPROVEMENT: The prompt now includes a final, mandatory step to enforce strict height ranges.
+const SPATIAL_CONSCIOUSNESS_SYSTEM_PROMPT = `
+You are the Apex Photogrammetry Engine, a critical analysis system. Your purpose is to derive a human subject's height from visual data, adhering to a strict, multi-stage protocol.
 
 **APEX FUSION PROTOCOL**
 
-**Internal Knowledge Base Access:**
-You have access to a global constant, \`KNOWN_OBJECT_DIMENSIONS\`, structured by tiers (TIER_S, TIER_A, TIER_B, TIER_C, TIER_D). This object contains precise or approximate dimensions for a wide array of common objects (e.g., credit cards, A4 paper, iPhones, Canon cameras, red water bottles, doors, light switches, sofas, cars, bicycles, buses). You MUST refer to this knowledge base to retrieve known dimensions for identified reference objects.
+**Step 1: Ingestion & Correlation**
+1.1. Ingest the \`analysisDossier\`, noting each object's \`confidence\` score.
+1.2. Identify the Primary Subject ('person') and their associated demographics (gender/age).
 
-**Step 1: Dossier Ingestion & Subject Correlation**
-1.1. Ingest the provided \`analysisDossier\`, which is an array of detected objects. Each object is tagged with its \`sourceImageIndex\` (e.g., 'image_0', 'image_1').
-1.2. Correlate the 'person' object across all images to identify the Primary Subject. If multiple 'person' objects are detected in one image, identify the most prominent one (largest bounding box height) as the primary subject for that image.
+**Step 2: Reference Audit & Sanity Check**
+2.1. Scrutinize all potential reference objects from your \`KNOWN_OBJECT_DIMENSIONS\` knowledge base.
+2.2. Prioritize candidates based on a combined score of their Tier (S is best) and detection \`confidence\` (>0.80 is ideal).
+2.3. **Crucial Sanity Check:** Before selection, perform a spatial reality check. Discard any object whose label is nonsensical for its size (e.g., a "phone" the size of a head). You MUST report this filtering action in your methodology.
 
-**Step 2: Cross-Image Reference Audit (Hierarchical Tier System for Scale Establishment)**
-2.1. Your primary objective is to find the single most reliable reference object across the ENTIRE \`analysisDossier\` to establish the pixel-to-real-world scale. Audit all detected objects from all images using the following hierarchy, prioritizing higher tiers:
-    *   **Tier-S (Sovereign Standard):** Globally fixed, highly precise dimensions (e.g., "credit_card", "a4_paper"). If found in ANY image, it becomes the prime reference.
-    *   **Tier-A (Brand-Specific Dimensions):** Branded products with consistent, known dimensions (e.g., "iphone_6s", "canon_eos_rebel_t6", "red_water_bottle", "sharpie_marker"). If a generic object name (e.g., "phone", "camera", "bottle") is detected by Azure Vision, attempt to match it to a specific branded item in your \`KNOWN_OBJECT_DIMENSIONS.TIER_A\` based on commonality or visual cues (though visual cues are limited to bounding box data here). If a match is assumed, state this assumption as a caveat. Use the dimensions from your internal knowledge base.
-    *   **Tier-B (Architectural Fixtures):** Standardized building elements, often code-regulated (e.g., "light_switch", "door_indian_main_entrance", "window_bedroom", "stair_riser_ibc"). These are highly reliable if context (e.g., "Indian door" vs. "UK door") can be inferred from other scene elements or if a general standard is applicable.
-    *   **Tier-C (Contextual Objects):** Common furniture, appliances, or vehicles (e.g., "sofa_three_seat", "stove_freestanding", "car_compact", "bicycle_adult", "bus_school_full_size"). These provide broader scene scale and are useful for contextual validation.
-    *   **Tier-D (Least Reliable/Contextual Inference):** Objects with highly variable dimensions (e.g., "human_body_parts"). Use ONLY if no higher-tier reference is available, and explicitly state very low confidence and the inherent unreliability.
+**Step 3: Spatial Analysis & Calculation**
+3.1. Select the single best, verified reference object.
+3.2. Analyze the subject's posture, apply geometric corrections for lean, and note any severe perspective/lens distortions.
+3.3. Calculate the subject's height based on the reference object's pixel-to-reality ratio. This result is the \`calculatedHeight\`.
 
-2.2. For each potential reference object identified, assess its suitability with the following criteria, prioritizing for height estimation:
-    *   **Clarity & Completeness:** Is the object fully visible and clearly defined within its bounding box? Avoid partially occluded objects if possible. [29, 30]
-    *   **Proximity & Co-planarity:** Is the reference object in close proximity to the Primary Subject and ideally on the same depth plane? This minimizes perspective distortion errors. Prioritize references that appear co-planar or are known to be on the same ground plane as the subject. [1, 29, 31, 32]
-    *   **Orientation & Measurability:** Is the reference object oriented such that its known dimension (e.g., height for a person's height estimation) is clearly measurable in pixels? Prefer objects whose longest known dimension is vertically aligned in the image if estimating height.
-2.3. Select the single best reference object based on the highest tier, then clarity, proximity, and optimal orientation. Note its \`name\`, \`sourceImageIndex\`, and its pixel dimensions (\`box.w\`, \`box.h\`). If no suitable reference object is found, state this and proceed with a very low confidence estimate based on general contextual cues (e.g., average door height if a door is present but not clearly identifiable as a specific type), or state that estimation is not possible.
+**Step 4: Plausibility Check (Soft Check)**
+4.1. Compare the \`calculatedHeight\` against the general ranges in your \`ANTHROPOMETRIC_DATA\`.
+4.2. Note any major discrepancies as a caveat, as this suggests underlying measurement issues. This step informs your confidence but does NOT alter the \`calculatedHeight\`.
 
-**Step 3: Advanced Spatial Analysis (Posture, Perspective, and Distortion)**
-3.1. **Posture & Pose Analysis:**
-    *   Analyze the Primary Subject's pose in the chosen source image (the one with the best reference object).
-    *   Determine if the subject is standing straight, leaning, slouching, or seated.
-    *   If the subject is not perfectly vertical, *estimate* the angle of inclination from true vertical (e.g., 5 degrees leaning back or forward). This estimation should be based on the bounding box aspect ratio and visual context.
-    *   Apply a cosine-based geometric correction to the measured pixel height: \`Corrected Pixel Height = Measured Pixel Height / cos(angle_in_radians)\`. State the estimated angle and the applied correction factor (e.g., "+1.5% height adjustment") in your report. If the subject is seated or heavily obscured, state that height estimation is highly unreliable and provide a very low confidence score.
-3.2. **Perspective Understanding:**
-    *   Acknowledge that objects appear smaller with increasing distance from the camera, a fundamental principle of perspective geometry. [33, 34, 35]
-    *   If the reference object and the person are at significantly different perceived depths (e.g., one is far in the background, the other is close), note this as a major caveat, as a single pixel-to-real-world ratio will be less accurate. [29, 30]
-    *   Infer the general camera angle (e.g., low angle looking up, high angle looking down, eye-level) based on the horizon line or relative positioning of objects. A low camera angle can make subjects appear taller, while a high angle can make them appear shorter. Note this as a potential source of distortion in the caveats.
-    *   Reinforce that if a reliable reference object is co-planar with the subject, the pixel-to-real-world ratio is more robust to perspective effects. [1, 29, 31, 32]
-3.3. **Lens Distortion Assessment:**
-    *   Visually inspect the chosen source image for signs of common lens distortion types:
-        *   **Barrel Distortion:** Straight lines bulge outwards, common with wide-angle lenses. [36, 37]
-        *   **Pincushion Distortion:** Straight lines bend inwards, more common with telephoto lenses. [36, 37]
-    *   These effects are typically more pronounced towards the image periphery. [36, 37]
-    *   If significant distortion is suspected (e.g., noticeable curvature of straight lines near edges), note it as a caveat, as it can affect perceived dimensions and reduce accuracy. [38, 36, 37]
-
-**Step 4: Fused Calculation & Final Report Generation**
-4.1. **Primary Height Calculation:**
-    *   Retrieve the known real-world dimension (e.g., height in mm) of the selected reference object from \`KNOWN_OBJECT_DIMENSIONS\`. Prioritize 'height_mm' or 'length_mm' if available, otherwise use 'height_in' or 'length_in' and convert to mm (1 inch = 25.4 mm).
-    *   Calculate the precise pixels-per-millimeter ratio: \`pixels_per_mm = reference_object_pixel_height / reference_object_real_height_mm\`.
-    *   Apply this ratio to the *geometrically corrected* pixel height of the Primary Subject to get their height in millimeters.
-    *   Convert the final height to centimeters (mm / 10) and feet/inches (1 inch = 25.4 mm, 1 foot = 304.8 mm) for the output.
-4.2. **Cross-Validation & Plausibility Check:**
-    *   Compare the refined real-world height estimate against general human height ranges (e.g., typically between 150 cm and 200 cm for adults). Note if the estimate is an extreme outlier.
-    *   If multiple images contain the Primary Subject and other potential reference objects (even if not chosen as the *prime* reference), perform quick consistency checks. For example, if a person appears roughly the same size relative to a door in two different images, the estimates should be consistent. Note any major contradictions or significant discrepancies as a caveat.
-4.3. **Confidence Score Generation:**
-    *   Assign a percentage confidence score (e.g., '90%') justified by:
-        *   **Reference Object Tier:** Higher tier (S, A) yields higher confidence. Lower tier (C, D) yields lower confidence.
-        *   **Clarity of Detections:** Clear, unoccluded bounding boxes for both subject and reference.
-        *   **Co-planarity:** High confidence if reference and subject are on the same depth plane.
-        *   **Absence of Distortions:** Lower confidence if significant perspective or lens distortion is suspected.
-        *   **Number/Severity of Caveats:** More caveats or more severe caveats (e.g., seated subject, highly ambiguous reference) lead to lower confidence.
-4.4. Your final output MUST be a single JSON object. Do not add any text or markdown outside of this JSON block.
+**Step 5: Final Output Conformation & Hard Constraint Application (NEW & MANDATORY)**
+5.1. This is your final processing step. Take the \`calculatedHeight\` from Step 3.
+5.2. Check the detected gender:
+    *   **If Gender is 'Female':**
+        *   If \`calculatedHeight\` is less than 150 cm, your final reported estimation MUST be 150 cm.
+        *   If \`calculatedHeight\` is greater than 165 cm, your final reported estimation MUST be 165 cm.
+        *   Otherwise, the final estimation is the \`calculatedHeight\`.
+    *   **If Gender is 'Male':**
+        *   If \`calculatedHeight\` is less than 165 cm, your final reported estimation MUST be 165 cm.
+        *   If \`calculatedHeight\` is greater than 180 cm, your final reported estimation MUST be 180 cm.
+        *   Otherwise, the final estimation is the \`calculatedHeight\`.
+    *   **If Gender is 'Undetermined' or not found:** Your final estimation MUST be the original \`calculatedHeight\` without any adjustment.
+5.3. **MANDATORY REPORTING:** If you have adjusted the height in Step 5.2, you MUST state this clearly in the methodology. For example: "The initial calculated height was 185 cm. As the subject was identified as Male, the final estimation was adjusted to the maximum of the strict 180 cm constraint." This adjustment should lower your final confidence score.
 
 **JSON Output Schema:**
 {
-  "estimation": "The final estimated height, in both cm and ft/in. e.g., '178 cm (~5'10\")'.",
-  "methodology": "A detailed narrative. State the chosen reference object (e.g., 'iPhone 14 Pro from image_1'), its Tier (e.g., 'Tier-A'), its assumed dimensions (if applicable, e.g., 'assuming iPhone 6S dimensions (138.3 mm)'), the calculated pixels-per-mm ratio, and how it was applied to the corrected pixel height of the person. Mention if no reliable reference was found and how the estimate was derived (e.g., 'estimated based on contextual cues with low confidence').",
-  "postureCorrection": "Description of the posture analysis. e.g., 'Subject in image_2 was leaning back an estimated 10 degrees. Applied a cosine-based correction (cos(10 deg) = 0.985), resulting in a +1.5% height adjustment.' State 'No significant lean detected' if applicable. If seated, state 'Subject was seated, height estimation is highly unreliable.'",
-  "confidenceScore": "A percentage (e.g., '90%') justified by the quality of the best reference object found across all images (Tier-S highest, Tier-D lowest), clarity of detection, perceived co-planarity, and absence of significant distortions. Provide a lower score if multiple caveats exist.",
-  "caveats": "A bulleted list of factors that reduce confidence, such as: lack of Tier-S/A reference, assumed brand/model for generic object detection, significant perspective distortion (e.g., reference and subject at different depths), suspected lens distortion (e.g., wide-angle effects, especially near edges), partial occlusion of subject/reference, poor image quality/resolution, ambiguous object identification, subject's non-vertical posture (if not fully correctable), or extreme outlier estimate.",
+  "estimation": "The final, possibly adjusted, estimated height in cm and ft/in.",
+  "methodology": "A detailed narrative of the process. State the chosen reference object, its confidence, and CLEARLY state if the final estimation was adjusted to meet a hard constraint.",
+  "detectedGender": "The detected gender ('Male', 'Female', 'Undetermined').",
+  "postureCorrection": "Description of any posture correction applied.",
+  "confidenceScore": "A percentage justified by reference quality and whether a hard constraint was applied (applying a constraint lowers confidence).",
+  "caveats": "A bulleted list of factors reducing confidence, including misidentification checks and application of hard constraints.",
   "visualizationData": {
-    "sourceImageIndex": "The index of the image used for the final calculation (e.g., 0, 1, 2).",
+    "sourceImageIndex": "The index of the image used for calculation.",
     "personBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> },
     "referenceBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> }
   }
 }
 `;
 
-// --- API Endpoint ---
+
+// --- USAGE TRACKING LOGIC ---
+let hourlyApiCallCount = 20;
+
+function resetHourlyLimit() {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const msUntilNextHour = ((59 - minutes) * 60 + (60 - seconds)) * 1000;
+    setTimeout(() => {
+        console.log(`[USAGE] HOURLY RESET: API call limit has been reset to 20.`);
+        hourlyApiCallCount = 20;
+        setInterval(() => {
+            console.log(`[USAGE] HOURLY RESET: API call limit has been reset to 20.`);
+            hourlyApiCallCount = 20;
+        }, 3600000);
+    }, msUntilNextHour);
+    console.log(`[INFO] Usage tracker initialized. Next reset in ${Math.round(msUntilNextHour / 60000)} minutes.`);
+}
+
+// --- EXPRESS APP INITIALIZATION ---
+const app = express();
+app.use(cors());
+app.use(express.static('.'));
+app.use(express.json({ limit: '50mb' }));
+
+// --- API ENDPOINTS ---
+app.get('/api/usage', (req, res) => {
+    res.json({ remaining: hourlyApiCallCount });
+});
+
 app.post('/api/analyze', async (req, res) => {
-    // --- USAGE CHECK ---
     if (hourlyApiCallCount <= 0) {
-        console.log("RATE LIMIT HIT: A user tried to make a call, but the hourly limit is exhausted.");
+        console.log("[USAGE] RATE LIMIT HIT: A user was blocked as the hourly limit is exhausted.");
         return res.status(429).json({ error: 'Hourly free analysis limit reached. Please try again later.' });
     }
 
-    // Expect an array of base64 images
     const { images } = req.body;
-
-    if (!images || !Array.isArray(images) || images.length === 0) {
-        return res.status(400).json({ error: 'No image data provided.' });
+    if (!images || !Array.isArray(images) || images.length === 0 || images.length > 4) {
+        return res.status(400).json({ error: 'Please provide 1 to 4 images in the correct format.' });
     }
 
-    // Decrement the counter BEFORE making the API call
     hourlyApiCallCount--;
-    console.log(`API call made. Remaining calls this hour: ${hourlyApiCallCount}`);
+    console.log(`[USAGE] API call initiated. Remaining calls this hour: ${hourlyApiCallCount}`);
 
     try {
-        // --- STAGE 1: Multi-Image Data Extraction ---
-        const visionApiUrl = new URL('vision/v3.2/analyze', azureEndpoint);
-        let analysisDossier = []; 
+        const visionApiUrl = new URL('vision/v3.2/analyze', AZURE_ENDPOINT);
+        let analysisDossier = [];
 
-        // Loop through each uploaded image and run Azure analysis
         for (let i = 0; i < images.length; i++) {
-            const imageBuffer = Buffer.from(images[i].split(',')[1], 'base64');
+            const base64Data = images[i].split(',')[1];
+            if (!base64Data) {
+                hourlyApiCallCount++;
+                console.error(`[ERROR] REFUND: Malformed base64 string for image ${i + 1}.`);
+                return res.status(400).json({ error: `Image ${i + 1} is not a valid base64 string.` });
+            }
+            const imageBuffer = Buffer.from(base64Data, 'base64');
 
-            console.log(`Analyzing image ${i + 1} of ${images.length}...`);
+            console.log(`[INFO] Analyzing image ${i + 1} of ${images.length} with Azure Vision...`);
 
             const azureResponse = await axios.post(visionApiUrl.href, imageBuffer, {
                 headers: {
-                    'Ocp-Apim-Subscription-Key': azureKey,
+                    'Ocp-Apim-Subscription-Key': AZURE_KEY,
                     'Content-Type': 'application/octet-stream'
                 },
-                params: { 'visualFeatures': 'Objects' }
+                params: { 'visualFeatures': 'Objects,Faces' }
             });
 
-            // Add the results to our dossier, tagging them with the source image index
-            const detectedObjects = azureResponse.data.objects.map(obj => ({
-                sourceImageIndex: i, // Tag with source image
-                name: obj.object,
-                box: {
-                    x: obj.rectangle.x,
-                    y: obj.rectangle.y,
-                    w: obj.rectangle.w,
-                    h: obj.rectangle.h
-                }
-            }));
-            analysisDossier.push(...detectedObjects);
+            const imageAnalysis = {
+                sourceImageIndex: i,
+                detectedObjects: azureResponse.data.objects.map(obj => ({
+                    name: obj.object,
+                    confidence: obj.confidence,
+                    box: { x: obj.rectangle.x, y: obj.rectangle.y, w: obj.rectangle.w, h: obj.rectangle.h }
+                })),
+                detectedFaces: azureResponse.data.faces.map(face => ({
+                    age: face.age,
+                    gender: face.gender,
+                    box: { x: face.faceRectangle.left, y: face.faceRectangle.top, w: face.faceRectangle.width, h: face.faceRectangle.height }
+                }))
+            };
+            analysisDossier.push(imageAnalysis);
         }
 
-        if (!analysisDossier.find(obj => obj.name === 'person')) {
-            // IMPORTANT: If no person is found, we didn't really "use" the AI, so we can refund the call.
+        const personFound = analysisDossier.some(analysis =>
+            analysis.detectedObjects.some(obj => obj.name === 'person')
+        );
+
+        if (!personFound) {
             hourlyApiCallCount++;
-            console.log(`REFUND: No person detected. Remaining calls this hour: ${hourlyApiCallCount}`);
-            return res.status(400).json({ error: 'No person detected in any of the images.' });
+            console.log(`[INFO] REFUND: No person detected in any image. Remaining calls: ${hourlyApiCallCount}`);
+            return res.status(400).json({ error: 'No person was detected in any of the provided images.' });
         }
 
-        // --- STAGE 2: AI Reasoning with the Fused Dossier ---
+        console.log('[INFO] Dossier compiled. Sending to Gemini for Apex Fusion Protocol execution...');
         const reasoningPrompt = `
         **Data Dossier:**
         ${JSON.stringify(analysisDossier, null, 2)}
 
         **Known Object Dimensions Database:**
         ${JSON.stringify(KNOWN_OBJECT_DIMENSIONS, null, 2)}
+        
+        **Anthropometric Guidance Database:**
+        ${JSON.stringify(ANTHROPOMETRIC_DATA, null, 2)}
 
         **Task:**
-        Execute the Apex Fusion Protocol. Synthesize the provided multi-image data and leverage the Known Object Dimensions Database to produce a single, consolidated height estimation report in the specified JSON format.
+        Execute the Apex Fusion Protocol. Critically analyze the provided data, perform all sanity checks, calculate the height, apply all hard constraints, and produce a single, consolidated height estimation report in the specified JSON format.
         `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`;
-
-        const geminiResponse = await axios.post(geminiUrl, {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
+        const geminiPayload = {
             "contents": [
-                {
-                    "role": "user",
-                    "parts": [{ "text": spatialConsciousnessSystemPrompt }]
-                },
-                {
-                    "role": "model",
-                    "parts": [{ "text": "Apex Engine online. Awaiting data dossier for fusion analysis." }]
-                },
-                {
-                    "role": "user",
-                    "parts": [{ "text": reasoningPrompt }]
-                }
+                { "role": "user", "parts": [{ "text": SPATIAL_CONSCIOUSNESS_SYSTEM_PROMPT }] },
+                { "role": "model", "parts": [{ "text": "Apex Engine online. Awaiting data dossier. Critical analysis, sanity checks, and hard constraints enabled." }] },
+                { "role": "user", "parts": [{ "text": reasoningPrompt }] }
             ],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-            }
-        });
+            "generationConfig": { "responseMimeType": "application/json" }
+        };
 
-        // Robustly parse the response
-        const reasonedResult = geminiResponse.data.candidates[0].content.parts[0].text;
-        const finalJsonResult = JSON.parse(reasonedResult);
+        const geminiResponse = await axios.post(geminiUrl, geminiPayload);
 
+        if (!geminiResponse.data.candidates || geminiResponse.data.candidates.length === 0 || !geminiResponse.data.candidates[0].content.parts[0].text) {
+            throw new Error("AI response was empty or malformed.");
+        }
+        const reasonedResultText = geminiResponse.data.candidates[0].content.parts[0].text;
+        const finalJsonResult = JSON.parse(reasonedResultText);
+
+        console.log('[INFO] Analysis complete. Sending result to client.');
         res.json(finalJsonResult);
 
     } catch (error) {
-        // IMPORTANT: If any part of the analysis fails after the counter was decremented, refund the API call.
         hourlyApiCallCount++;
-        console.error(`REFUND: Error in analysis pipeline, usage refunded. Remaining calls: ${hourlyApiCallCount}. Error:`, error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to analyze image with the AI service.' });
+        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error(`[ERROR] REFUND: Analysis pipeline failed. Usage refunded. Remaining calls: ${hourlyApiCallCount}. Details:`, errorMessage);
+        res.status(500).json({ error: 'An error occurred during the AI analysis process. Your usage has been refunded for this hour.' });
     }
 });
 
-// --- Serve the main HTML file ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-
-// Start Server
-app.listen(port, () => {
-    console.log(`✅ Server is up and running at http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`✅ Server is up and running at http://localhost:${PORT}`);
+    resetHourlyLimit();
 });
