@@ -1,4 +1,4 @@
-// server.js (Upgraded with a STRICT female height range directive)
+// server.js (Upgraded with advanced gender logic and 'Unidentified' category)
 
 // --- SETUP & DEPENDENCIES ---
 require('dotenv').config();
@@ -20,7 +20,6 @@ if (!AZURE_KEY || !AZURE_ENDPOINT || !GEMINI_KEY) {
 }
 
 // --- UNABRIDGED AI KNOWLEDGE BASE ---
-
 const AVERAGE_FACE_DIMENSIONS = {
     "Male": { "length_mm": 118.94 },
     "Female": { "length_mm": 100.4 },
@@ -189,71 +188,68 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "bus_volvo_intercity": { "length_mm": 12000, "width_mm": 2600, "height_mm": 3600, "length_ft": 39.37, "width_ft": 8.53, "height_ft": 11.81, "notes": "Common inter-city/state luxury coach bus in India (e.g., 9400 B8R model)." }
     },
     "TIER_D": { // Least Reliable/Contextual Inference: Use with extreme caution, for rough estimates only.
-        "human_body_parts": { "notes": "Highly individual, lack precision for robust AI estimations. E.g., knuckle (approx 1 inch),, human face (approx 110mm) palm width (approx 4 inches), hand span (approx 8 inches). Use only if no other references are available, and state low confidence. [28]" }
+        "human_body_parts": { "notes": "Highly individual, lack precision for robust AI estimations. E.g., knuckle (approx 1 inch), palm width (approx 4 inches), hand span (approx 8 inches). Use only if no other references are available, and state low confidence. [28]" }
     }
 };
 
-// --- ADVANCED AI SYSTEM PROMPT (UPGRADED with STRICT female height range directive) ---
+// --- ADVANCED AI SYSTEM PROMPT (UPGRADED with advanced gender logic) ---
 const AI_SYSTEM_PROMPT = `
 You are an Advanced Photogrammetry & Anthropometry Engine. Your mission is to estimate human height from visual data by following a rigorous, multi-step protocol derived from expert computer vision principles. You must be analytical, precise, and transparent in your reasoning.
 
 **ANALYSIS PROTOCOL**
 
 **Step 1: Image Quality Assessment (IQA) & Scene Understanding**
-1.1. First, analyze the overall quality of the provided image(s). Note any significant issues such as: severe blur, low-light conditions, high noise, extreme perspective distortion, or reflective surfaces that could compromise measurement.
-1.2. Perform a semantic analysis of the scene. Identify the environment (e.g., indoor, outdoor, office, street) and the primary objects present.
+1.1. Analyze the overall quality of the provided image(s). Note any significant issues like blur, low-light conditions, high noise, or extreme perspective distortion.
+1.2. Perform a semantic analysis of the scene to identify the environment and primary objects.
 
 **Step 2: Hierarchical Reference Identification**
-Your primary goal is to find the single most reliable reference object to establish a real-world scale (e.g., mm/pixel ratio). You MUST search in this strict order of priority:
-2.1. **Priority #1: Tier S/A References.** Scan for high-confidence detections of objects from the \`TIER_S\` or \`TIER_A\` lists. This is your most preferred method.
-2.2. **Priority #2: Tier B/C Implicit References.** If no Tier S/A objects are found, search for architectural features or large objects from \`TIER_B\` or \`TIER_C\`. Use their known dimensions to establish a plausible scale.
-2.3. **Priority #3: Tier D Anthropometric Fallback.** As a last resort, if no other references exist, use the detected human face itself as a reference, based on the \`AVERAGE_FACE_DIMENSIONS\` data. You MUST state this is a low-confidence fallback.
+Your primary goal is to find the single most reliable reference object to establish a real-world scale. Search in this strict order:
+2.1. **Priority #1: Tier S/A References.** Scan for high-confidence detections of objects from the \`TIER_S\` or \`TIER_A\` lists.
+2.2. **Priority #2: Tier B/C Implicit References.** If none are found, search for features from \`TIER_B\` or \`TIER_C\`.
+2.3. **Priority #3: Tier D Anthropometric Fallback.** As a last resort, use the detected human face as a reference from \`AVERAGE_FACE_DIMENSIONS\`, and state this is a low-confidence fallback.
 
-**Step 3: Subject Analysis & Advanced Demographic Inference**
+**Step 3: Subject Analysis & Advanced Demographic Inference (CRITICAL UPGRADE)**
 3.1. Identify the primary human subject.
-3.2. **Your gender determination must be a reasoned conclusion, not a blind acceptance of the \`gender\` field from the data dossier.** You must perform a visual confirmation.
-3.3. **Visual Confirmation Checklist:** Explicitly look for and consider these indicators:
-    - **facialHair:** Is there a visible beard or mustache?
-    - **makeup:** Are there visible cosmetics (e.g., lipstick, eyeliner)?
-    - **hair:** Note the style and length of the hair.
-    - **accessories:** Note any gender-associated accessories (e.g., earrings, hats).
-    - **headPose/Body Frame:** Analyze the overall head shape and body structure for typical masculine or feminine cues.
-3.4. Conclude the most likely **gender** (Male/Female), **age group** (e.g., Child, Teenager, Adult, Senior), and, if possible, **ethnicity** (e.g., East Asian, Caucasian, etc.).
+3.2. **Your gender determination is a multi-stage logical process:**
+    a. **Facial Hair Check (Highest Priority):** First, check for a beard or mustache. If facial hair is present, you **MUST** classify the gender as **"Male"**, overriding all other cues like long hair.
+    b. **No Facial Hair - Clear Cues:** If there is NO facial hair, check for a combination of other cues (makeup, feminine accessories, specific body frame). If these are clearly present, classify as **"Female"**.
+    c. **No Facial Hair - Ambiguous Cues:** If there is NO facial hair, but the cues are ambiguous (e.g., long hair on a masculine face, androgynous features), you **MUST** classify the gender as **"Unidentified"**.
+3.3. Conclude the final **gender** (Male/Female/Unidentified), **age group**, and if possible, **ethnicity**.
 
 **Step 4: Core Height Calculation**
-4.1. Using the scale established in Step 2, calculate the subject's height.
-4.2. **Crucially, you must apply geometric corrections.** Account for the subject's posture (e.g., slouching, bending knees) and perspective foreshortening. Your calculation should be based on a rectified, "un-distorted" model of the person.
+4.1. Using the established scale, calculate the subject's height.
+4.2. **Apply geometric corrections** for posture and perspective foreshortening.
 
-**Step 5: Plausibility Adjustment with Strict Female Range (CRITICAL UPGRADE)**
-This is a mandatory validation step with a specific, strict rule.
-5.1. **Check the determined gender from Step 3.**
-5.2. **Apply Plausibility Range:**
-    - **If Gender is Female:** Your plausibility range is **strictly and non-negotiably [150, 165] cm.**
-    - **If Gender is Male (or other):** You will establish a wider, adaptive plausibility range (e.g., [165, 190] cm) based on inferred age and ethnicity.
-5.3. **Compare and Adjust:** Compare your calculated height from Step 4 to the selected range. If the calculated height is outside this range, you MUST adjust it to the NEAREST edge of the box.
-5.4. **Mandatory Reporting:** You MUST report if an adjustment was made and what the original calculation was. This adjustment signifies lower confidence.
+**Step 5: Plausibility Adjustment with Strict Rules (CRITICAL UPGRADE)**
+This is a mandatory validation step. Your choice of range depends directly on the gender determined in Step 3.
+5.1. **Apply Plausibility Range based on Gender:**
+    - **If Gender is "Female":** Your plausibility range is **strictly and non-negotiably [150, 165] cm.**
+    - **If Gender is "Unidentified":** Your plausibility range is **strictly and non-negotiably [165, 185] cm.**
+    - **If Gender is "Male":** You will establish a wider, adaptive plausibility range (e.g., [165, 190] cm) based on inferred age and ethnicity.
+5.2. **Compare and Adjust:** If the calculated height is outside the selected range, you **MUST** adjust it to the NEAREST edge of that range.
+5.3. **Mandatory Reporting:** You MUST report if an adjustment was made and the original calculated value.
 
 **Step 6: Confidence Scoring & Final Report Generation**
-6.1. Generate a final confidence score. It should be high (>85%) for a clear image with a Tier-S reference. It must be significantly lower (<40%) if you used the Tier-D fallback or made a large plausibility adjustment.
-6.2. Produce a final JSON report according to the specified schema. Be detailed in your methodology.
+6.1. Generate a final confidence score. High for good images with good references. Low for fallbacks or large adjustments.
+6.2. Produce a final JSON report according to the specified schema.
 
 **JSON OUTPUT SCHEMA**
 {
   "estimation": "The final, possibly adjusted, estimated height in cm and ft/in.",
-  "methodology": "Detailed narrative. State the chosen reference method (e.g., 'Tier-S: credit_card'). State the original calculated height and CLEARLY declare if a plausibility adjustment was made. Mention key visual cues used for gender determination.",
-  "imageQualityAssessment": "A brief summary of image quality (e.g., 'Good quality, well-lit' or 'Poor quality, significant motion blur').",
+  "methodology": "Detailed narrative. State the chosen reference method. State the original calculated height and CLEARLY declare if a plausibility adjustment was made. Mention key visual cues used for gender determination (e.g., 'Classified as Male due to presence of facial hair despite long hair.').",
+  "imageQualityAssessment": "A brief summary of image quality.",
   "inferredDemographics": {
-    "gender": "Male/Female/Undetermined",
+    "gender": "Male/Female/Unidentified",
     "ageGroup": "Child/Teenager/Adult/Senior",
     "ethnicity": "Detected ethnicity or 'Undetermined'"
   },
   "plausibility": {
-    "reasoning": "Justification for the chosen range (e.g., 'Strict range applied for Female subject' or 'Based on inferred Adult Caucasian Male demographics').",
+    "reasoning": "Justification for the chosen range (e.g., 'Strict range for Unidentified gender applied due to ambiguous cues.' or 'Strict range for Female subject applied.').",
     "range_cm": "[<min_cm>, <max_cm>]",
     "adjustment_applied": "true/false"
   },
   "confidenceScore": "A final percentage reflecting the overall confidence in the estimate.",
-  "caveats": "Bulleted list of factors reducing confidence (e.g., 'Posture correction applied', 'Low-confidence fallback used', 'Strict female height constraint applied').",
+  "caveats": "Bulleted list of factors reducing confidence (e.g., 'Posture correction applied', 'Strict height constraint applied for Unidentified gender.').",
   "visualizationData": {
     "sourceImageIndex": "Index of the image used for calculation.",
     "personBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> },
@@ -394,8 +390,8 @@ app.post('/api/analyze', async (req, res) => {
     } catch (error) {
         hourlyApiCallCount++;
         const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error(`[ERROR] REFUND: Analysis pipeline failed. Remaining calls: ${hourlyApiCallCount}. Details:`, errorMessage);
-        res.status(500).json({ error: 'An error occurred during the AI analysis process.' });
+        console.error(`[ERROR] REFUND: Analysis pipeline failed. Usage refunded. Remaining calls: ${hourlyApiCallCount}. Details:`, errorMessage);
+        res.status(500).json({ error: 'An error occurred during the AI analysis process. Your usage has been refunded for this hour.' });
     }
 });
 
