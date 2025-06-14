@@ -5,38 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HowTallAreYou? - AI Height Guesser</title>
     <style>
-        /* --- ISSUE 1 FIXED: Font Upgrade to "Inter" --- */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap');
+        /* --- ISSUE FIXED: Font Upgrade to "Poppins" --- */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap');
 
-        body, html { margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+        /* --- Base Styles --- */
+        body, html { margin: 0; padding: 0; font-family: 'Poppins', -apple-system, sans-serif; }
         body { background: linear-gradient(135deg, #ffffff 0%, #ababb0 100%); }
         main { min-height: 100vh; }
         
-        /* --- Logo & Scroll-to-Vanish Animation --- */
+        /* --- Logo & Animation --- */
         .logo { 
-            position: fixed; top: 20px; left: 20px; font-weight: 600; /* Adjusted for Inter */
+            position: fixed; top: 20px; left: 20px; font-weight: 600; 
             display: flex; align-items: center; z-index: 1000; color: #000;
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out; text-decoration: none;
         }
         .logo.hidden { opacity: 0; transform: translateY(-20px); pointer-events: none; }
         .logo-image { height: 90px; width: auto; margin-right: -20px; }
         .website-name { font-size: 20px; white-space: nowrap; }
 
+        /* --- Usage Counter --- */
+        .usage-counter {
+            position: fixed; top: 28px; right: 20px; background-color: rgba(0, 0, 0, 0.05);
+            color: #333; padding: 8px 16px; border-radius: 99px; font-size: 0.9rem;
+            font-weight: 500; z-index: 1000; border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
         /* --- Landing Page: Two-Column Container --- */
         .container { display: flex; padding-top: 100px; box-sizing: border-box; min-height: 100vh; }
         .left-content, .right-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        
-        /* --- ISSUE 2 FIXED: Silhouette Sizing --- */
-        .silhouette { max-height: 60vh; /* Reduced by 25% from 80vh */ max-width: 100%; object-fit: contain; transition: all 0.5s ease; }
+        .silhouette { max-height: 60vh; max-width: 100%; object-fit: contain; transition: all 0.5s ease; }
         .silhouette:hover { transform: scale(1.05) rotate(5deg); }
         
         .content-box { background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 30px 50px; box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; text-align: center; }
-        h1 { font-size: 48px; font-weight: 800; /* Bolder for impact */ letter-spacing: -0.03em; margin-bottom: 20px; }
+        h1 {
+            /* --- ISSUE FIXED: Using Poppins for a thick, modern headline --- */
+            font-family: 'Poppins', sans-serif;
+            font-size: 4rem;
+            font-weight: 800; /* Extra-bold weight for impact */
+            letter-spacing: -0.04em; /* Tighten spacing for a solid look */
+            margin-bottom: 20px;
+        }
         p { font-size: 18px; color: #666666; margin-bottom: 30px; line-height: 1.6; }
         
-        /* --- Modernized UI Elements --- */
+        /* --- UI Elements --- */
         .upload-section { margin-bottom: 1.5rem; }
-        .upload-btn { background-color: #000; display: inline-flex; align-items: center; justify-content: center; color: #fff; padding: 12px 28px; border: none; border-radius: 99px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+        .upload-btn { background-color: #000; display: inline-flex; align-items: center; justify-content: center; color: #fff; padding: 12px 28px; border: none; border-radius: 99px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; text-decoration: none; }
         .upload-btn:not(:disabled):hover { background-color: #333; transform: translateY(-2px); }
         .image-preview-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 1.5rem; min-height: 80px; }
         .uploaded-image-container { position: relative; width: 75px; height: 75px; border-radius: 10px; overflow: hidden; }
@@ -49,7 +62,7 @@
 
         /* --- Advanced Results Page --- */
         .results-container { text-align: left; padding: 120px 20px 40px 20px; max-width: 900px; margin: 0 auto; }
-        .results-container h2 { text-align: center; font-size: 36px; margin-bottom: 30px; color: #000; font-weight: 800; letter-spacing: -0.03em; }
+        .results-container h2 { text-align: center; font-size: 36px; margin-bottom: 30px; color: #000; font-weight: 800; }
         .report-box { background: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .report-box h3 { margin-top: 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: 600; }
         .report-box p { color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 0; }
@@ -58,17 +71,17 @@
         
         /* --- Original About Section --- */
         .about-container { max-width: 800px; padding: 30px; margin: 20px auto; border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
-        .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; font-weight: 800; letter-spacing: -0.03em; }
+        .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; font-weight: 800; }
         .about-content { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; }
         .about-left-column { width: 45%; background-color: rgba(0, 0, 0, 0.7); border-radius: 20px; padding: 20px; box-sizing: border-box; }
         .about-left-column p { color: #f0f0f0; }
         .profile-pic { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 20px; background-image: url('/src/profile.jpg'); background-size: cover; background-position: center; }
-        .about-button { background-color: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 100px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        .about-button { background-color: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 100px; font-size: 16px; cursor: pointer; margin-top: 20px; text-decoration: none; display: inline-block; }
         .about-right-column { width: 55%; }
         .about-right-column h3 { font-size: 24px; margin-bottom: 15px; font-weight: 600; }
         .about-right-column p { color: #4a4a4a; font-size: 1rem; }
         
-        /* --- RESPONSIVE DESIGN FIXES --- */
+        /* --- Responsive Design --- */
         @media (max-width: 1024px) {
             main { min-height: auto; }
             .container { flex-direction: column; min-height: auto; height: auto; padding-top: 120px; padding-bottom: 40px; }
@@ -80,20 +93,25 @@
             .about-left-column, .about-right-column { width: 100%; box-sizing: border-box; }
         }
         @media (max-width: 768px) {
-            h1 { font-size: 36px; }
+            h1 { font-size: 3rem; }
             p { font-size: 16px; }
-            .upload-btn, .analyze-btn { padding: 10px 20px; font-size: 16px; }
+            .upload-btn, .analyze-btn, .about-button { padding: 10px 20px; font-size: 16px; }
+            .logo { left: 10px; top: 10px; }
+            .usage-counter { right: 10px; top: 18px; }
         }
     </style>
 </head>
 <body>
-    <div class="logo" id="logo">
+    <a href="/" class="logo" id="logo">
         <img src="/src/2.jpg-removebg-preview.png" class="logo-image" alt="Logo">
         <span class="website-name">HowTallAreYou?</span>
+    </a>
+
+    <div class="usage-counter" id="usage-counter">
+        <span id="usage-count">--</span> uses left this hour
     </div>
 
     <main>
-        <!-- Landing Page -->
         <div id="landing-page" class="container">
             <div class="left-content">
                 <div class="content-box">
@@ -116,13 +134,9 @@
             </div>
         </div>
 
-        <!-- Results Page -->
         <div id="results-page" class="results-container" style="display: none;">
             <h2>Your Height Analysis</h2>
-            <div class="report-box visualization-box">
-                <h3>AI Analysis Visualization</h3>
-                <canvas id="analysis-canvas"></canvas>
-            </div>
+            <div class="report-box visualization-box"><h3>AI Analysis Visualization</h3><canvas id="analysis-canvas"></canvas></div>
             <div class="report-box"><h3>Final Estimation</h3><p id="report-estimation">---</p></div>
             <div class="report-box"><h3>Methodology</h3><p id="report-methodology">---</p></div>
             <div class="report-box"><h3>Posture Correction</h3><p id="report-posture">---</p></div>
@@ -132,13 +146,12 @@
         </div>
     </main>
     
-    <!-- About Section -->
     <div class="about-container">
         <div class="about-content">
             <div class="about-left-column">
                 <div class="profile-pic"></div>
                 <p>Hi, I'm Evin John, the creator of this height estimation tool. I'm passionate about combining technology and fitness to help people understand their bodies better.</p>
-                <button class="about-button">Evin John</button>
+                <a href="https://www.linkedin.com/in/evinjohn" target="_blank" rel="noopener noreferrer" class="about-button">Evin John</a>
             </div>
             <div class="about-right-column">
                 <h3>How It Works</h3>
@@ -149,16 +162,29 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- The JavaScript is identical to the previous version and is correct ---
+        const usageCountSpan = document.getElementById('usage-count');
+        async function fetchUsage() {
+            try {
+                const response = await fetch('/api/usage');
+                const data = await response.json();
+                usageCountSpan.textContent = response.ok ? data.remaining : 'Error';
+                if(document.getElementById('analyze-btn')) {
+                    document.getElementById('analyze-btn').disabled = data.remaining <= 0;
+                }
+            } catch (error) {
+                console.error('Failed to fetch usage count:', error);
+                usageCountSpan.textContent = 'N/A';
+            }
+        }
+        fetchUsage();
+        setInterval(fetchUsage, 60000);
+        
         const logo = document.getElementById('logo');
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 30) {
-                logo.classList.add('hidden');
-            } else {
-                logo.classList.remove('hidden');
-            }
+            logo.classList.toggle('hidden', window.scrollY > 30);
         });
 
-        // The rest of the JS is the same and is correct.
         const imageUploadInput = document.getElementById('image-upload');
         const uploadBtn = document.getElementById('upload-btn');
         const imagePreviewContainer = document.getElementById('image-preview-container');
@@ -196,15 +222,12 @@
         function updateImagePreview() {
             imagePreviewContainer.innerHTML = '';
             uploadedImages.forEach((image, index) => {
-                const div = document.createElement('div');
-                div.className = 'uploaded-image-container';
-                div.innerHTML = `<img src="${image}" alt="Preview ${index + 1}"><button class="remove-image" data-index="${index}">×</button>`;
-                imagePreviewContainer.appendChild(div);
+                imagePreviewContainer.innerHTML += `<div class="uploaded-image-container"><img src="${image}" alt="Preview ${index + 1}"><button class="remove-image" data-index="${index}">×</button></div>`;
             });
             document.querySelectorAll('.remove-image').forEach(button => {
                 button.addEventListener('click', (e) => removeImage(parseInt(e.target.dataset.index, 10)));
             });
-            analyzeBtn.disabled = uploadedImages.length === 0;
+            fetchUsage();
         }
 
         function removeImage(index) {
@@ -224,19 +247,12 @@
 
         function toggleLoading(isLoading) {
             analyzeBtn.disabled = isLoading;
-            if (isLoading) {
-                analyzeBtn.innerHTML = `<div class="spinner"></div>`;
-            } else {
-                analyzeBtn.innerHTML = `<span class="btn-text">Analyze Height</span>`;
-            }
+            analyzeBtn.innerHTML = isLoading ? `<div class="spinner"></div>` : `<span class="btn-text">Analyze Height</span>`;
         }
 
         async function handleAnalysis() {
             hideError();
-            if (uploadedImages.length === 0) {
-                alert('Please upload at least one image.');
-                return;
-            }
+            if (uploadedImages.length === 0) { alert('Please upload at least one image.'); return; }
             toggleLoading(true);
 
             try {
@@ -249,10 +265,12 @@
                 if (!response.ok) throw new Error(data.error || 'API request failed');
                 
                 showResultsPageUI(data);
+                fetchUsage();
             } catch (error) {
                 console.error("Analysis Error:", error);
                 showError(`Analysis Failed: ${error.message}`);
                 toggleLoading(false);
+                fetchUsage();
             }
         }
 
