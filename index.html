@@ -5,30 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HowTallAreYou? - AI Height Guesser</title>
     <style>
-        /* --- Font Imports: Futura for UI, and Poppins for the Headline --- */
+        /* --- Font Imports --- */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-        /* --- Original tall.html Base Styles --- */
-        body, html { margin: 0; padding: 0; font-family: Futura, "Trebuchet MS", Arial, sans-serif; }
+        /* --- Base Styles --- */
+        body, html { margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
         body { background: linear-gradient(135deg, #ffffff 0%, #ababb0 100%); }
         main { min-height: 100vh; }
         
-        /* --- Logo & Floating Animation (from original) --- */
+        /* --- Logo & Scroll-to-Vanish Animation --- */
         .logo { 
-            position: fixed; top: 20px; left: 20px; font-weight: bold; 
+            position: fixed; top: 20px; left: 20px; font-weight: 600; 
             display: flex; align-items: center; z-index: 1000; color: #000;
             transition: opacity 0.3s ease-out, transform 0.3s ease-out; text-decoration: none;
-            /* Removed the float animation to work with scroll effect, but can be added back */
         }
         .logo.hidden { opacity: 0; transform: translateY(-20px); pointer-events: none; }
         .logo-image { height: 90px; width: auto; margin-right: -20px; }
         .website-name { font-size: 20px; white-space: nowrap; }
 
-        /* --- Usage Counter --- */
+        /* --- ISSUE 1 FIXED: Usage Counter now also vanishes --- */
         .usage-counter {
             position: fixed; top: 28px; right: 20px; background-color: rgba(0, 0, 0, 0.05);
             color: #333; padding: 8px 16px; border-radius: 99px; font-size: 0.9rem;
             font-weight: 500; z-index: 1000; border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .usage-counter.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
         }
 
         /* --- Landing Page: Two-Column Container --- */
@@ -38,14 +44,7 @@
         .silhouette:hover { transform: scale(1.05) rotate(5deg); }
         
         .content-box { background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 30px 50px; box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; text-align: center; }
-        h1 {
-            /* --- Using Poppins for a thick, modern headline --- */
-            font-family: 'Poppins', sans-serif;
-            font-size: 4rem;
-            font-weight: 800; /* Extra-bold weight for impact */
-            letter-spacing: -0.04em; /* Tighten spacing for a solid look */
-            margin-bottom: 20px;
-        }
+        h1 { font-family: 'Poppins', sans-serif; font-size: 4rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 20px; }
         p { font-size: 18px; color: #666666; margin-bottom: 30px; line-height: 1.6; }
         
         /* --- UI Elements --- */
@@ -70,7 +69,7 @@
         .visualization-box canvas { width: 100%; height: auto; border-radius: 12px; max-height: 500px; background-color: #e8e8ed; object-fit: contain; }
         #reset-btn { display: block; margin: 40px auto 0; }
         
-        /* --- Original About Section --- */
+        /* --- About Section --- */
         .about-container { max-width: 800px; padding: 30px; margin: 20px auto; border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
         .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; font-weight: 800; }
         .about-content { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; }
@@ -98,7 +97,13 @@
             p { font-size: 16px; }
             .upload-btn, .analyze-btn, .about-button { padding: 10px 20px; font-size: 16px; }
             .logo { left: 10px; top: 10px; }
-            .usage-counter { right: 10px; top: 18px; }
+            .usage-counter { 
+                right: 10px; 
+                top: 18px; 
+                /* --- ISSUE 2 FIXED: Smaller font on mobile --- */
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
         }
     </style>
 </head>
@@ -113,6 +118,7 @@
     </div>
 
     <main>
+        <!-- The rest of the body is the same and is correct -->
         <div id="landing-page" class="container">
             <div class="left-content">
                 <div class="content-box">
@@ -136,7 +142,6 @@
         </div>
 
         <div id="results-page" class="results-container" style="display: none;">
-            <!-- Results content as before -->
             <h2>Your Height Analysis</h2>
             <div class="report-box visualization-box"><h3>AI Analysis Visualization</h3><canvas id="analysis-canvas"></canvas></div>
             <div class="report-box"><h3>Final Estimation</h3><p id="report-estimation">---</p></div>
@@ -149,7 +154,6 @@
     </main>
     
     <div class="about-container">
-        <!-- About content as before -->
         <div class="about-content">
             <div class="about-left-column">
                 <div class="profile-pic"></div>
@@ -164,10 +168,18 @@
     </div>
 
     <script>
-    // The JavaScript is identical to the previous version and is correct.
-    // It will work perfectly with the updated HTML and CSS.
-    // All functionality is preserved.
     document.addEventListener('DOMContentLoaded', () => {
+        const logo = document.getElementById('logo');
+        const usageCounter = document.getElementById('usage-counter'); // Get the usage counter element
+
+        window.addEventListener('scroll', () => {
+            const isHidden = window.scrollY > 30;
+            logo.classList.toggle('hidden', isHidden);
+            // ISSUE 1 FIXED: Also hide the usage counter on scroll
+            usageCounter.classList.toggle('hidden', isHidden);
+        });
+
+        // The rest of the JS is identical and correct
         const usageCountSpan = document.getElementById('usage-count');
         async function fetchUsage() {
             try {
@@ -186,11 +198,6 @@
         fetchUsage();
         setInterval(fetchUsage, 60000);
         
-        const logo = document.getElementById('logo');
-        window.addEventListener('scroll', () => {
-            logo.classList.toggle('hidden', window.scrollY > 30);
-        });
-
         const imageUploadInput = document.getElementById('image-upload');
         const uploadBtn = document.getElementById('upload-btn');
         const imagePreviewContainer = document.getElementById('image-preview-container');
