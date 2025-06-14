@@ -1,7 +1,7 @@
 {
   "name": "howtallareyou",
   "version": "1.0.0",
-  "description": "An AI-powered application to estimate height from photos using Groq.",
+  "description": "An AI-powered application to estimate height from photos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/evinjohnn/HowTallAreYou.git"
+    "url": "git+https://github.com/evinjohnn/HowTallAreYou-.git"
   },
   "author": "Evin John",
   "license": "ISC",
@@ -20,5 +20,8 @@
   },
   "devDependencies": {
     "dotenv": "^16.5.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

@@ -5,87 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HowTallAreYou? - AI Height Guesser</title>
     <style>
-        /* --- Original tall.html Base Styles --- */
-        body, html { margin: 0; padding: 0; font-family: Futura, "Trebuchet MS", Arial, sans-serif; }
+        /* --- ISSUE 1 FIXED: Font Upgrade to "Inter" --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap');
+
+        body, html { margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
         body { background: linear-gradient(135deg, #ffffff 0%, #ababb0 100%); }
         main { min-height: 100vh; }
         
-        /* --- Logo & Floating Animation --- */
-        .logo { position: fixed; top: 20px; left: 20px; font-weight: bold; display: flex; align-items: center; z-index: 1000; animation: float 3s ease-in-out infinite; color: #000; }
+        /* --- Logo & Scroll-to-Vanish Animation --- */
+        .logo { 
+            position: fixed; top: 20px; left: 20px; font-weight: 600; /* Adjusted for Inter */
+            display: flex; align-items: center; z-index: 1000; color: #000;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .logo.hidden { opacity: 0; transform: translateY(-20px); pointer-events: none; }
         .logo-image { height: 90px; width: auto; margin-right: -20px; }
         .website-name { font-size: 20px; white-space: nowrap; }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
 
         /* --- Landing Page: Two-Column Container --- */
         .container { display: flex; padding-top: 100px; box-sizing: border-box; min-height: 100vh; }
         .left-content, .right-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* --- ISSUE 3 FIXED: Silhouette Sizing --- */
-        .silhouette { max-height: 75vh; /* Reduced from 80vh */ max-width: 100%; object-fit: contain; transition: all 0.5s ease; }
+        /* --- ISSUE 2 FIXED: Silhouette Sizing --- */
+        .silhouette { max-height: 60vh; /* Reduced by 25% from 80vh */ max-width: 100%; object-fit: contain; transition: all 0.5s ease; }
         .silhouette:hover { transform: scale(1.05) rotate(5deg); }
         
-        .content-box { background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 30px 50px; box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; }
-        h1 { font-size: 48px; margin-bottom: 20px; }
-        p { font-size: 18px; color: #666666; margin-bottom: 30px; }
+        .content-box { background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 30px 50px; box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; text-align: center; }
+        h1 { font-size: 48px; font-weight: 800; /* Bolder for impact */ letter-spacing: -0.03em; margin-bottom: 20px; }
+        p { font-size: 18px; color: #666666; margin-bottom: 30px; line-height: 1.6; }
         
-        /* --- ISSUE 1 & 2 FIXED: Input & Upload Section --- */
-        .upload-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Center the content */
-            width: 100%;
-        }
-        .upload-btn {
-            background-color: #000; color: #fff; padding: 12px 28px; border: none; border-radius: 99px;
-            font-size: 1.1rem; /* Slightly larger font */ font-weight: 500;
-            cursor: pointer; transition: all 0.2s ease;
-        }
+        /* --- Modernized UI Elements --- */
+        .upload-section { margin-bottom: 1.5rem; }
+        .upload-btn { background-color: #000; display: inline-flex; align-items: center; justify-content: center; color: #fff; padding: 12px 28px; border: none; border-radius: 99px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
         .upload-btn:not(:disabled):hover { background-color: #333; transform: translateY(-2px); }
-
         .image-preview-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 1.5rem; min-height: 80px; }
         .uploaded-image-container { position: relative; width: 75px; height: 75px; border-radius: 10px; overflow: hidden; }
         .uploaded-image-container img { width: 100%; height: 100%; object-fit: cover; }
         .remove-image { position: absolute; top: 2px; right: 2px; background-color: rgba(255, 255, 255, 0.7); border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
-        
-        .analyze-btn { display: flex; justify-content: center; align-items: center; margin-top: 20px; width: 100%; padding: 12px 24px; }
+        .analyze-btn { width: 100%; }
         .analyze-btn:disabled { background-color: #888; cursor: not-allowed; transform: none; }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         .error-message { color: #D8000C; background-color: #FFD2D2; border: 1px solid; margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; }
 
         /* --- Advanced Results Page --- */
-        .results-container { text-align: left; padding: 120px 40px 40px 40px; max-width: 900px; margin: 0 auto; }
-        .results-container h2 { text-align: center; font-size: 36px; margin-bottom: 30px; color: #000; }
+        .results-container { text-align: left; padding: 120px 20px 40px 20px; max-width: 900px; margin: 0 auto; }
+        .results-container h2 { text-align: center; font-size: 36px; margin-bottom: 30px; color: #000; font-weight: 800; letter-spacing: -0.03em; }
         .report-box { background: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .report-box h3 { margin-top: 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .report-box h3 { margin-top: 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: 600; }
         .report-box p { color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 0; }
         .visualization-box canvas { width: 100%; height: auto; border-radius: 12px; max-height: 500px; background-color: #e8e8ed; object-fit: contain; }
         #reset-btn { display: block; margin: 40px auto 0; }
         
         /* --- Original About Section --- */
-        .about-container { max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
-        .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; }
+        .about-container { max-width: 800px; padding: 30px; margin: 20px auto; border-radius: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(102, 112, 128, 0.7) 100%); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
+        .about-container h2 { text-align: center; font-size: 36px; margin-bottom: 20px; color: #000; font-weight: 800; letter-spacing: -0.03em; }
         .about-content { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; }
         .about-left-column { width: 45%; background-color: rgba(0, 0, 0, 0.7); border-radius: 20px; padding: 20px; box-sizing: border-box; }
         .about-left-column p { color: #f0f0f0; }
         .profile-pic { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 20px; background-image: url('/src/profile.jpg'); background-size: cover; background-position: center; }
         .about-button { background-color: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 100px; font-size: 16px; cursor: pointer; margin-top: 20px; }
-        .about-right-column { width: 55%; color: #000; }
-        .about-right-column h3 { font-size: 24px; margin-bottom: 15px; }
+        .about-right-column { width: 55%; }
+        .about-right-column h3 { font-size: 24px; margin-bottom: 15px; font-weight: 600; }
+        .about-right-column p { color: #4a4a4a; font-size: 1rem; }
         
-        /* --- Responsive Design --- */
+        /* --- RESPONSIVE DESIGN FIXES --- */
         @media (max-width: 1024px) {
-            .container { flex-direction: column; height: auto; }
-            .left-content, .right-content { width: 100%; flex-basis: auto; }
-            .right-content { order: -1; } /* Move silhouette to top on mobile */
+            main { min-height: auto; }
+            .container { flex-direction: column; min-height: auto; height: auto; padding-top: 120px; padding-bottom: 40px; }
+            .left-content { order: 2; padding: 10px; width: 100%; box-sizing: border-box; }
+            .right-content { display: none; }
+            .content-box { width: 90%; margin: 0 auto 20px auto; padding: 20px; }
+            .about-container { margin: 20px 10px; }
+            .about-content { flex-direction: column; }
+            .about-left-column, .about-right-column { width: 100%; box-sizing: border-box; }
         }
         @media (max-width: 768px) {
-            .about-content { flex-direction: column; }
-            .about-left-column, .about-right-column { width: 100%; margin-bottom: 20px; }
+            h1 { font-size: 36px; }
+            p { font-size: 16px; }
+            .upload-btn, .analyze-btn { padding: 10px 20px; font-size: 16px; }
         }
     </style>
 </head>
 <body>
-    <div class="logo">
+    <div class="logo" id="logo">
         <img src="/src/2.jpg-removebg-preview.png" class="logo-image" alt="Logo">
         <span class="website-name">HowTallAreYou?</span>
     </div>
@@ -97,14 +99,11 @@
                 <div class="content-box">
                     <h1>Stop Capping</h1>
                     <p>Be the real you - our AI-powered height guessing app takes the guesswork out of your true height.</p>
-                    
-                    <!-- NEW, SIMPLIFIED LAYOUT -->
                     <div class="upload-section">
                         <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
                         <button class="upload-btn" id="upload-btn">Upload Images</button>
-                        <div class="image-preview-container" id="image-preview-container"></div>
                     </div>
-                    
+                    <div class="image-preview-container" id="image-preview-container"></div>
                     <div id="error-message" style="display: none;"></div>
                     <button class="upload-btn analyze-btn" id="analyze-btn" disabled>
                         <span class="btn-text">Analyze Height</span>
@@ -149,8 +148,17 @@
     </div>
 
     <script>
-    // --- Start of JavaScript ---
     document.addEventListener('DOMContentLoaded', () => {
+        const logo = document.getElementById('logo');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 30) {
+                logo.classList.add('hidden');
+            } else {
+                logo.classList.remove('hidden');
+            }
+        });
+
+        // The rest of the JS is the same and is correct.
         const imageUploadInput = document.getElementById('image-upload');
         const uploadBtn = document.getElementById('upload-btn');
         const imagePreviewContainer = document.getElementById('image-preview-container');
@@ -252,6 +260,7 @@
             landingPage.style.display = 'none';
             aboutContainer.style.display = 'none';
             resultsPage.style.display = 'block';
+            window.scrollTo(0, 0);
             
             document.getElementById('report-estimation').textContent = report.estimation || "---";
             document.getElementById('report-methodology').textContent = report.methodology || "---";
