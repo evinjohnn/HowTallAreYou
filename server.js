@@ -1,4 +1,4 @@
-// server.js
+// server.js (Upgraded with a STRICT female height range directive)
 
 // --- SETUP & DEPENDENCIES ---
 require('dotenv').config();
@@ -19,15 +19,14 @@ if (!AZURE_KEY || !AZURE_ENDPOINT || !GEMINI_KEY) {
     process.exit(1);
 }
 
-// --- AI KNOWLEDGE BASE: FACIAL PHOTOGRAMMETRY FALLBACK ---
+// --- UNABRIDGED AI KNOWLEDGE BASE ---
+
 const AVERAGE_FACE_DIMENSIONS = {
     "Male": { "length_mm": 118.94 },
     "Female": { "length_mm": 100.4 },
     "notes": "Used ONLY as a low-confidence fallback when no other reliable reference object is found. Represents average face length from chin to brow."
 };
 
-// --- AI KNOWLEDGE BASE: STANDARD OBJECT DIMENSIONS (COMPLETE & UNABRIDGED) ---
-// As requested, this is the full, original knowledge base.
 const KNOWN_OBJECT_DIMENSIONS = {
     "TIER_S": { // Sovereign Standard: Globally fixed, highly precise dimensions. Ideal for scale.
         "credit_card": { "width_mm": 85.725, "height_mm": 53.975, "thickness_mm": 0.76, "width_in": 3.375, "height_in": 2.125, "thickness_in": 0.0299, "notes": "ISO/IEC 7810 ID-1 standard [4]" },
@@ -190,66 +189,78 @@ const KNOWN_OBJECT_DIMENSIONS = {
         "bus_volvo_intercity": { "length_mm": 12000, "width_mm": 2600, "height_mm": 3600, "length_ft": 39.37, "width_ft": 8.53, "height_ft": 11.81, "notes": "Common inter-city/state luxury coach bus in India (e.g., 9400 B8R model)." }
     },
     "TIER_D": { // Least Reliable/Contextual Inference: Use with extreme caution, for rough estimates only.
-        "human_body_parts": { "notes": "Highly individual, lack precision for robust AI estimations. E.g., knuckle (approx 1 inch), palm width (approx 4 inches), hand span (approx 8 inches). Use only if no other references are available, and state low confidence. [28]" }
+        "human_body_parts": { "notes": "Highly individual, lack precision for robust AI estimations. E.g., knuckle (approx 1 inch),, human face (approx 110mm) palm width (approx 4 inches), hand span (approx 8 inches). Use only if no other references are available, and state low confidence. [28]" }
     }
 };
 
-// --- AI "APEX" CONSCIOUSNESS PROMPT ---
-// The final, corrected, and most intelligent version of the AI's instructions.
-const SPATIAL_CONSCIOUSNESS_SYSTEM_PROMPT = `
-You are the Apex Photogrammetry Engine, a critical analysis system. Your purpose is to derive a human subject's height from visual data by adhering to a strict, hierarchical protocol. Your analysis MUST be transparent, and your final output MUST conform to the specified plausibility adjustments.
+// --- ADVANCED AI SYSTEM PROMPT (UPGRADED with STRICT female height range directive) ---
+const AI_SYSTEM_PROMPT = `
+You are an Advanced Photogrammetry & Anthropometry Engine. Your mission is to estimate human height from visual data by following a rigorous, multi-step protocol derived from expert computer vision principles. You must be analytical, precise, and transparent in your reasoning.
 
-**APEX FUSION PROTOCOL**
+**ANALYSIS PROTOCOL**
 
-**Step 1: Ingestion & Subject Identification**
-1.1. Ingest the \`analysisDossier\`, noting each object's \`confidence\` score.
-1.2. Identify the Primary Subject ('person' with the largest bounding box).
-1.3. **Crucially, find the face associated with the Primary Subject and determine their gender.** This is a mandatory prerequisite for the fallback and final adjustment steps. If gender cannot be determined, you must state 'Undetermined' and you will skip Step 4.
+**Step 1: Image Quality Assessment (IQA) & Scene Understanding**
+1.1. First, analyze the overall quality of the provided image(s). Note any significant issues such as: severe blur, low-light conditions, high noise, extreme perspective distortion, or reflective surfaces that could compromise measurement.
+1.2. Perform a semantic analysis of the scene. Identify the environment (e.g., indoor, outdoor, office, street) and the primary objects present.
 
-**Step 2: Reference Selection Hierarchy**
-Your primary goal is to find ONE valid reference to calculate height. You MUST follow this order of priority:
-2.1. **Priority #1: Physical Object Search (Tiers S, A, B)**
-    *   Scan all detected objects for a high-confidence (>0.80) candidate from the \`KNOWN_OBJECT_DIMENSIONS\` knowledge base.
-    *   Perform a **Mandatory Sanity Check:** Discard any object whose label is nonsensical for its pixel size (e.g., a "phone" the size of a head is a misidentification). You must report this filtering action.
-    *   If a valid, sane object is found, select it as the reference and proceed directly to Step 3.
-2.2. **Priority #2: Facial Photogrammetry Fallback**
-    *   **Condition:** You must execute this step IF AND ONLY IF no suitable physical object was found in Priority #1.
-    *   **Requirement:** A face with a determined gender ('Male' or 'Female') MUST be available. If not, the analysis fails, and you must report that an estimation is impossible.
-    *   **Action:**
-        1.  Use the detected face as the reference object.
-        2.  Retrieve the average face length from \`AVERAGE_FACE_DIMENSIONS\` for the detected gender.
-        3.  Proceed to Step 3.
-        4.  You MUST note in your methodology that you are using this low-confidence fallback method.
+**Step 2: Hierarchical Reference Identification**
+Your primary goal is to find the single most reliable reference object to establish a real-world scale (e.g., mm/pixel ratio). You MUST search in this strict order of priority:
+2.1. **Priority #1: Tier S/A References.** Scan for high-confidence detections of objects from the \`TIER_S\` or \`TIER_A\` lists. This is your most preferred method.
+2.2. **Priority #2: Tier B/C Implicit References.** If no Tier S/A objects are found, search for architectural features or large objects from \`TIER_B\` or \`TIER_C\`. Use their known dimensions to establish a plausible scale.
+2.3. **Priority #3: Tier D Anthropometric Fallback.** As a last resort, if no other references exist, use the detected human face itself as a reference, based on the \`AVERAGE_FACE_DIMENSIONS\` data. You MUST state this is a low-confidence fallback.
 
-**Step 3: Calculation**
-3.1. Using your chosen reference (either a physical object or the face from the fallback), analyze posture, apply geometric corrections, and calculate the subject's raw height. This result is the \`evidenceBasedHeight\`.
+**Step 3: Subject Analysis & Advanced Demographic Inference**
+3.1. Identify the primary human subject.
+3.2. **Your gender determination must be a reasoned conclusion, not a blind acceptance of the \`gender\` field from the data dossier.** You must perform a visual confirmation.
+3.3. **Visual Confirmation Checklist:** Explicitly look for and consider these indicators:
+    - **facialHair:** Is there a visible beard or mustache?
+    - **makeup:** Are there visible cosmetics (e.g., lipstick, eyeliner)?
+    - **hair:** Note the style and length of the hair.
+    - **accessories:** Note any gender-associated accessories (e.g., earrings, hats).
+    - **headPose/Body Frame:** Analyze the overall head shape and body structure for typical masculine or feminine cues.
+3.4. Conclude the most likely **gender** (Male/Female), **age group** (e.g., Child, Teenager, Adult, Senior), and, if possible, **ethnicity** (e.g., East Asian, Caucasian, etc.).
 
-**Step 4: Plausibility Adjustment & Final Conformation**
-4.1. This is a mandatory final step if gender was determined in Step 1.
-4.2. Take the \`evidenceBasedHeight\` from Step 3 and compare it to the following realistic plausibility ranges:
-    *   **Plausibility Box (Female):** [150, 175] cm
-    *   **Plausibility Box (Male):** [165, 190] cm
-4.3. **Apply Adjustment ONLY IF NECESSARY:**
-    *   **If the \`evidenceBasedHeight\` is already INSIDE the subject's plausibility box, DO NOT CHANGE IT.** The final estimation is the \`evidenceBasedHeight\`.
-    *   **If the \`evidenceBasedHeight\` is OUTSIDE the box, adjust it to the NEAREST EDGE of the box.** (e.g., If a male is calculated at 162 cm, adjust to 165 cm. If calculated at 195 cm, adjust to 190 cm).
-4.4. **MANDATORY REPORTING:** If you performed an adjustment in step 4.3, you MUST state this action and the original calculated value clearly in the methodology. For example: "The evidence-based height was calculated to be 195 cm. As this is outside the plausible range for a male, the final estimation was adjusted to 190 cm." This adjustment should lower your final confidence score.
+**Step 4: Core Height Calculation**
+4.1. Using the scale established in Step 2, calculate the subject's height.
+4.2. **Crucially, you must apply geometric corrections.** Account for the subject's posture (e.g., slouching, bending knees) and perspective foreshortening. Your calculation should be based on a rectified, "un-distorted" model of the person.
 
-**JSON Output Schema:**
+**Step 5: Plausibility Adjustment with Strict Female Range (CRITICAL UPGRADE)**
+This is a mandatory validation step with a specific, strict rule.
+5.1. **Check the determined gender from Step 3.**
+5.2. **Apply Plausibility Range:**
+    - **If Gender is Female:** Your plausibility range is **strictly and non-negotiably [150, 165] cm.**
+    - **If Gender is Male (or other):** You will establish a wider, adaptive plausibility range (e.g., [165, 190] cm) based on inferred age and ethnicity.
+5.3. **Compare and Adjust:** Compare your calculated height from Step 4 to the selected range. If the calculated height is outside this range, you MUST adjust it to the NEAREST edge of the box.
+5.4. **Mandatory Reporting:** You MUST report if an adjustment was made and what the original calculation was. This adjustment signifies lower confidence.
+
+**Step 6: Confidence Scoring & Final Report Generation**
+6.1. Generate a final confidence score. It should be high (>85%) for a clear image with a Tier-S reference. It must be significantly lower (<40%) if you used the Tier-D fallback or made a large plausibility adjustment.
+6.2. Produce a final JSON report according to the specified schema. Be detailed in your methodology.
+
+**JSON OUTPUT SCHEMA**
 {
   "estimation": "The final, possibly adjusted, estimated height in cm and ft/in.",
-  "methodology": "A detailed narrative. State the chosen reference method (e.g., 'Physical Object: credit_card' or 'Fallback: Facial Photogrammetry'). CLEARLY state if the final estimation was adjusted from the original calculation to meet plausibility constraints, and what the original calculation was.",
-  "detectedGender": "The detected gender ('Male', 'Female', 'Undetermined').",
-  "postureCorrection": "Description of any posture correction applied.",
-  "confidenceScore": "A percentage. High for a good Tier-S/A reference. Very low (e.g., '30%') if using the facial fallback. Lowered if a plausibility adjustment was applied.",
-  "caveats": "A bulleted list of factors reducing confidence, such as 'Estimation based on low-confidence facial photogrammetry fallback.' or 'Final value adjusted to conform to plausibility range.'",
+  "methodology": "Detailed narrative. State the chosen reference method (e.g., 'Tier-S: credit_card'). State the original calculated height and CLEARLY declare if a plausibility adjustment was made. Mention key visual cues used for gender determination.",
+  "imageQualityAssessment": "A brief summary of image quality (e.g., 'Good quality, well-lit' or 'Poor quality, significant motion blur').",
+  "inferredDemographics": {
+    "gender": "Male/Female/Undetermined",
+    "ageGroup": "Child/Teenager/Adult/Senior",
+    "ethnicity": "Detected ethnicity or 'Undetermined'"
+  },
+  "plausibility": {
+    "reasoning": "Justification for the chosen range (e.g., 'Strict range applied for Female subject' or 'Based on inferred Adult Caucasian Male demographics').",
+    "range_cm": "[<min_cm>, <max_cm>]",
+    "adjustment_applied": "true/false"
+  },
+  "confidenceScore": "A final percentage reflecting the overall confidence in the estimate.",
+  "caveats": "Bulleted list of factors reducing confidence (e.g., 'Posture correction applied', 'Low-confidence fallback used', 'Strict female height constraint applied').",
   "visualizationData": {
-    "sourceImageIndex": "The index of the image used for calculation.",
+    "sourceImageIndex": "Index of the image used for calculation.",
     "personBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> },
     "referenceBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> }
   }
 }
 `;
-
 
 // --- USAGE TRACKING LOGIC ---
 let hourlyApiCallCount = 20;
@@ -309,13 +320,15 @@ app.post('/api/analyze', async (req, res) => {
             const imageBuffer = Buffer.from(base64Data, 'base64');
 
             console.log(`[INFO] Analyzing image ${i + 1} of ${images.length} with Azure Vision...`);
-
+            
             const azureResponse = await axios.post(visionApiUrl.href, imageBuffer, {
                 headers: {
                     'Ocp-Apim-Subscription-Key': AZURE_KEY,
                     'Content-Type': 'application/octet-stream'
                 },
-                params: { 'visualFeatures': 'Objects,Faces' }
+                params: { 
+                    'visualFeatures': 'Objects,Faces'
+                }
             });
 
             const imageAnalysis = {
@@ -344,26 +357,24 @@ app.post('/api/analyze', async (req, res) => {
             return res.status(400).json({ error: 'No person was detected in any of the provided images.' });
         }
 
-        console.log('[INFO] Dossier compiled. Sending to Gemini for Apex Fusion Protocol execution...');
+        console.log('[INFO] Dossier compiled. Sending to Gemini for advanced analysis...');
+        
         const reasoningPrompt = `
         **Data Dossier:**
         ${JSON.stringify(analysisDossier, null, 2)}
 
-        **Known Object Dimensions Database:**
-        ${JSON.stringify(KNOWN_OBJECT_DIMENSIONS, null, 2)}
-        
-        **Average Face Dimensions Database (for fallback):**
-        ${JSON.stringify(AVERAGE_FACE_DIMENSIONS, null, 2)}
+        **Knowledge Base:**
+        ${JSON.stringify({ ...KNOWN_OBJECT_DIMENSIONS, AVERAGE_FACE_DIMENSIONS }, null, 2)}
 
         **Task:**
-        Execute the Apex Fusion Protocol. Critically analyze the provided data, follow the reference hierarchy, use the fallback if necessary, apply all plausibility adjustments, and produce a single, consolidated height estimation report in the specified JSON format.
+        Execute the full analysis protocol.
         `;
 
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
         const geminiPayload = {
             "contents": [
-                { "role": "user", "parts": [{ "text": SPATIAL_CONSCIOUSNESS_SYSTEM_PROMPT }] },
-                { "role": "model", "parts": [{ "text": "Apex Engine online. Awaiting data dossier. All protocols, fallbacks, and plausibility adjustments are active." }] },
+                { "role": "user", "parts": [{ "text": AI_SYSTEM_PROMPT }] },
+                { "role": "model", "parts": [{ "text": "Photogrammetry & Anthropometry Engine online. Awaiting data dossier and knowledge base. All protocols are active." }] },
                 { "role": "user", "parts": [{ "text": reasoningPrompt }] }
             ],
             "generationConfig": { "responseMimeType": "application/json" }
@@ -383,8 +394,8 @@ app.post('/api/analyze', async (req, res) => {
     } catch (error) {
         hourlyApiCallCount++;
         const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error(`[ERROR] REFUND: Analysis pipeline failed. Usage refunded. Remaining calls: ${hourlyApiCallCount}. Details:`, errorMessage);
-        res.status(500).json({ error: 'An error occurred during the AI analysis process. Your usage has been refunded for this hour.' });
+        console.error(`[ERROR] REFUND: Analysis pipeline failed. Remaining calls: ${hourlyApiCallCount}. Details:`, errorMessage);
+        res.status(500).json({ error: 'An error occurred during the AI analysis process.' });
     }
 });
 
