@@ -168,224 +168,257 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const logo = document.getElementById('logo');
-        const usageCounter = document.getElementById('usage-counter');
-
-        window.addEventListener('scroll', () => {
-            const isHidden = window.scrollY > 30;
-            logo.classList.toggle('hidden', isHidden);
-            usageCounter.classList.toggle('hidden', isHidden);
-        });
-
-        const usageCountSpan = document.getElementById('usage-count');
-        async function fetchUsage() {
-            try {
-                const response = await fetch('/api/usage');
-                const data = await response.json();
-                usageCountSpan.textContent = response.ok ? data.remaining : 'Error';
-                if(document.getElementById('analyze-btn')) {
-                    const hasImages = uploadedImages.length > 0;
-                    document.getElementById('analyze-btn').disabled = data.remaining <= 0 || !hasImages;
-                }
-            } catch (error) {
-                console.error('Failed to fetch usage count:', error);
-                usageCountSpan.textContent = 'N/A';
-            }
-        }
-        fetchUsage();
-        setInterval(fetchUsage, 60000);
-        
-        const imageUploadInput = document.getElementById('image-upload');
-        const uploadBtn = document.getElementById('upload-btn');
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const analyzeBtn = document.getElementById('analyze-btn');
-        const errorMessageDiv = document.getElementById('error-message');
-        const landingPage = document.getElementById('landing-page');
-        const resultsPage = document.getElementById('results-page');
-        const aboutContainer = document.querySelector('.about-container');
-        const resetBtn = document.getElementById('reset-btn');
-
-        let uploadedImages = [];
-        const MAX_IMAGES = 4;
-
-        uploadBtn.addEventListener('click', () => imageUploadInput.click());
-        imageUploadInput.addEventListener('change', handleImageUpload);
-        analyzeBtn.addEventListener('click', handleAnalysis);
-        resetBtn.addEventListener('click', showLandingPageUI);
-
-        // --- NEW: Replaced function to handle HEIC conversion ---
-        function handleImageUpload(event) {
-            // Use a self-executing async function to handle the logic
-            (async () => {
-                toggleLoading(true); // Show spinner during processing/conversion
-                hideError();
-
-                const files = Array.from(event.target.files).slice(0, MAX_IMAGES);
-                uploadedImages = []; // Keep original "replace" behavior
-                if (files.length === 0) {
-                    updateImagePreview();
-                    toggleLoading(false);
-                    return;
-                }
-
-                // Process each file, converting if necessary
-                const processingPromises = files.map(file => {
-                    return new Promise(async (resolve) => {
-                        // Skip non-image files
-                        if (!file.type.startsWith('image/')) {
-                            resolve(null);
-                            return;
-                        }
-
-                        let fileToProcess = file;
-                        // Check for HEIC/HEIF by file extension (more reliable than MIME type)
-                        const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-                        
-                        // If it's HEIC and the library is available, convert it
-                        if (isHeic && window.heic2any) {
-                            console.log(`HEIC file detected: ${file.name}. Converting to JPEG...`);
-                            try {
-                                const convertedBlob = await heic2any({
-                                    blob: file,
-                                    toType: "image/jpeg",
-                                    quality: 0.9 // Use good quality for analysis
-                                });
-                                fileToProcess = new File([convertedBlob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
-                                console.log(`Conversion successful for ${file.name}`);
-                            } catch (e) {
-                                console.error(`Could not convert HEIC file: ${file.name}`, e);
-                                showError(`Could not process ${file.name}. Please try a different photo.`);
-                                resolve(null); // Mark this file as failed
-                                return;
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- NEW HELPER FUNCTION TO RESIZE IMAGES ---
+            async function resizeImage(file, maxWidth = 1280, maxHeight = 1280, quality = 0.85) {
+                return new Promise((resolve, reject) => {
+                    const blobURL = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.src = blobURL;
+                    img.onerror = function() {
+                        URL.revokeObjectURL(this.src);
+                        reject(new Error("Failed to load image for resizing."));
+                    };
+                    img.onload = function() {
+                        URL.revokeObjectURL(this.src);
+                        let { width, height } = img;
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
                             }
                         }
-
-                        // Read the original or converted file as a Data URL
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.onerror = () => resolve(null);
-                        reader.readAsDataURL(fileToProcess);
-                    });
-                });
-
-                // Wait for all files to be processed
-                const results = await Promise.all(processingPromises);
-                uploadedImages = results.filter(Boolean); // Filter out any that failed
-
-                updateImagePreview(); // Show previews
-                toggleLoading(false); // Hide spinner
-            })();
-        }
-
-        function updateImagePreview() {
-            imagePreviewContainer.innerHTML = '';
-            uploadedImages.forEach((image, index) => {
-                imagePreviewContainer.innerHTML += `<div class="uploaded-image-container"><img src="${image}" alt="Preview ${index + 1}"><button class="remove-image" data-index="${index}">×</button></div>`;
-            });
-            document.querySelectorAll('.remove-image').forEach(button => {
-                button.addEventListener('click', (e) => removeImage(parseInt(e.target.dataset.index, 10)));
-            });
-            fetchUsage();
-        }
-
-        function removeImage(index) {
-            uploadedImages.splice(index, 1);
-            updateImagePreview();
-        }
-
-        function showError(message) {
-            errorMessageDiv.textContent = message;
-            errorMessageDiv.className = 'error-message';
-            errorMessageDiv.style.display = 'block';
-        }
-
-        function hideError() {
-            errorMessageDiv.style.display = 'none';
-        }
-
-        function toggleLoading(isLoading) {
-            analyzeBtn.disabled = isLoading;
-            analyzeBtn.innerHTML = isLoading ? `<div class="spinner"></div>` : `<span class="btn-text">Analyze Height</span>`;
-        }
-
-        async function handleAnalysis() {
-            hideError();
-            if (uploadedImages.length === 0) { alert('Please upload at least one image.'); return; }
-            toggleLoading(true);
-
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ images: uploadedImages }) 
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'API request failed');
-                
-                showResultsPageUI(data);
-                fetchUsage();
-            } catch (error) {
-                console.error("Analysis Error:", error);
-                showError(`Analysis Failed: ${error.message}`);
-                toggleLoading(false);
-                fetchUsage();
-            }
-        }
-
-        // --- NEW: Modified function to turn off spinner on results ---
-        function showResultsPageUI(report) {
-            toggleLoading(false); // Hide spinner when results are shown
-            landingPage.style.display = 'none';
-            aboutContainer.style.display = 'none';
-            resultsPage.style.display = 'block';
-            window.scrollTo(0, 0);
-            
-            document.getElementById('report-estimation').textContent = report.estimation || "---";
-            document.getElementById('report-methodology').textContent = report.methodology || "---";
-            document.getElementById('report-posture').textContent = report.postureCorrection || "---";
-            document.getElementById('report-confidence').textContent = report.confidenceScore || "---";
-            document.getElementById('report-caveats').textContent = report.caveats || "---";
-
-            const viz = report.visualizationData;
-            if (viz && viz.sourceImageIndex !== undefined && uploadedImages[viz.sourceImageIndex]) {
-                const sourceImage = new Image();
-                sourceImage.src = uploadedImages[viz.sourceImageIndex];
-                
-                sourceImage.onload = () => {
-                    const canvas = document.getElementById('analysis-canvas');
-                    if (!canvas) return;
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = sourceImage.naturalWidth;
-                    canvas.height = sourceImage.naturalHeight;
-                    ctx.drawImage(sourceImage, 0, 0);
-
-                    const drawBox = (box, color, label) => {
-                        if(!box) return;
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = Math.max(4, sourceImage.naturalWidth * 0.005);
-                        ctx.strokeRect(box.x, box.y, box.w, box.h);
-                        ctx.fillStyle = color;
-                        ctx.font = `bold ${Math.max(16, sourceImage.naturalWidth * 0.02)}px sans-serif`;
-                        ctx.fillText(label, box.x, box.y - 10);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
                     };
-                    drawBox(viz.personBox, '#39FF14', 'Subject');
-                    drawBox(viz.referenceBox, '#FF1493', 'Reference');
-                };
+                });
             }
-        }
-
-        function showLandingPageUI() {
-            resultsPage.style.display = 'none';
-            landingPage.style.display = 'flex';
-            aboutContainer.style.display = 'block';
-            hideError();
-            imageUploadInput.value = '';
-            uploadedImages = [];
-            updateImagePreview();
-            toggleLoading(false);
-        }
-    });
-    </script>
-</body>
-</html>
+    
+            const logo = document.getElementById('logo');
+            const usageCounter = document.getElementById('usage-counter');
+    
+            window.addEventListener('scroll', () => {
+                const isHidden = window.scrollY > 30;
+                logo.classList.toggle('hidden', isHidden);
+                usageCounter.classList.toggle('hidden', isHidden);
+            });
+    
+            const usageCountSpan = document.getElementById('usage-count');
+            async function fetchUsage() {
+                try {
+                    const response = await fetch('/api/usage');
+                    const data = await response.json();
+                    usageCountSpan.textContent = response.ok ? data.remaining : 'Error';
+                    if (document.getElementById('analyze-btn')) {
+                        const hasImages = uploadedImages.length > 0;
+                        document.getElementById('analyze-btn').disabled = data.remaining <= 0 || !hasImages;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch usage count:', error);
+                    usageCountSpan.textContent = 'N/A';
+                }
+            }
+            fetchUsage();
+            setInterval(fetchUsage, 60000);
+    
+            const imageUploadInput = document.getElementById('image-upload');
+            const uploadBtn = document.getElementById('upload-btn');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const errorMessageDiv = document.getElementById('error-message');
+            const landingPage = document.getElementById('landing-page');
+            const resultsPage = document.getElementById('results-page');
+            const aboutContainer = document.querySelector('.about-container');
+            const resetBtn = document.getElementById('reset-btn');
+    
+            let uploadedImages = [];
+            const MAX_IMAGES = 4;
+    
+            uploadBtn.addEventListener('click', () => imageUploadInput.click());
+            imageUploadInput.addEventListener('change', handleImageUpload);
+            analyzeBtn.addEventListener('click', handleAnalysis);
+            resetBtn.addEventListener('click', showLandingPageUI);
+    
+            // --- UPDATED function to handle HEIC conversion AND image resizing ---
+            function handleImageUpload(event) {
+                (async () => {
+                    toggleLoading(true, 'Processing...');
+                    hideError();
+    
+                    const files = Array.from(event.target.files).slice(0, MAX_IMAGES);
+                    uploadedImages = []; // Replace behavior
+                    if (files.length === 0) {
+                        updateImagePreview();
+                        toggleLoading(false);
+                        return;
+                    }
+    
+                    const processingPromises = files.map(file => {
+                        return new Promise(async (resolve) => {
+                            if (!file.type.startsWith('image/')) {
+                                resolve(null);
+                                return;
+                            }
+    
+                            let fileToProcess = file;
+                            const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+    
+                            if (isHeic && window.heic2any) {
+                                console.log(`HEIC file detected: ${file.name}. Converting...`);
+                                try {
+                                    const convertedBlob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+                                    fileToProcess = new File([convertedBlob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
+                                    console.log(`Conversion successful for ${file.name}`);
+                                } catch (e) {
+                                    console.error(`Could not convert HEIC file: ${file.name}`, e);
+                                    showError(`Could not process ${file.name}. Please try a different photo.`);
+                                    resolve(null);
+                                    return;
+                                }
+                            }
+    
+                            // --- RESIZING LOGIC ---
+                            try {
+                                console.log(`Resizing image: ${fileToProcess.name}`);
+                                const resizedDataUrl = await resizeImage(fileToProcess);
+                                console.log(`Resizing successful for ${fileToProcess.name}.`);
+                                resolve(resizedDataUrl);
+                            } catch (e) {
+                                console.error(`Could not resize image: ${fileToProcess.name}`, e);
+                                showError(`Failed to process ${fileToProcess.name}.`);
+                                resolve(null);
+                            }
+                        });
+                    });
+    
+                    const results = await Promise.all(processingPromises);
+                    uploadedImages = results.filter(Boolean);
+    
+                    updateImagePreview();
+                    toggleLoading(false);
+                })();
+            }
+    
+            function updateImagePreview() {
+                imagePreviewContainer.innerHTML = '';
+                uploadedImages.forEach((image, index) => {
+                    imagePreviewContainer.innerHTML += `<div class="uploaded-image-container"><img src="${image}" alt="Preview ${index + 1}"><button class="remove-image" data-index="${index}">×</button></div>`;
+                });
+                document.querySelectorAll('.remove-image').forEach(button => {
+                    button.addEventListener('click', (e) => removeImage(parseInt(e.target.dataset.index, 10)));
+                });
+                fetchUsage();
+            }
+    
+            function removeImage(index) {
+                uploadedImages.splice(index, 1);
+                updateImagePreview();
+            }
+    
+            function showError(message) {
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.className = 'error-message';
+                errorMessageDiv.style.display = 'block';
+            }
+    
+            function hideError() {
+                errorMessageDiv.style.display = 'none';
+            }
+    
+            function toggleLoading(isLoading, text = 'Analyze Height') {
+                analyzeBtn.disabled = isLoading;
+                if (isLoading) {
+                    analyzeBtn.innerHTML = `<div class="spinner"></div>`;
+                } else {
+                     analyzeBtn.innerHTML = `<span class="btn-text">${text}</span>`;
+                }
+            }
+    
+            async function handleAnalysis() {
+                hideError();
+                if (uploadedImages.length === 0) { alert('Please upload at least one image.'); return; }
+                toggleLoading(true);
+    
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ images: uploadedImages })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'API request failed');
+    
+                    showResultsPageUI(data);
+                    fetchUsage();
+                } catch (error) {
+                    console.error("Analysis Error:", error);
+                    showError(`Analysis Failed: ${error.message}`);
+                    toggleLoading(false);
+                    fetchUsage();
+                }
+            }
+    
+            function showResultsPageUI(report) {
+                toggleLoading(false);
+                landingPage.style.display = 'none';
+                aboutContainer.style.display = 'none';
+                resultsPage.style.display = 'block';
+                window.scrollTo(0, 0);
+    
+                document.getElementById('report-estimation').textContent = report.estimation || "---";
+                document.getElementById('report-methodology').textContent = report.methodology || "---";
+                document.getElementById('report-posture').textContent = report.postureCorrection || "---";
+                document.getElementById('report-confidence').textContent = report.confidenceScore || "---";
+                document.getElementById('report-caveats').textContent = report.caveats || "---";
+    
+                const viz = report.visualizationData;
+                if (viz && viz.sourceImageIndex !== undefined && uploadedImages[viz.sourceImageIndex]) {
+                    const sourceImage = new Image();
+                    sourceImage.src = uploadedImages[viz.sourceImageIndex];
+    
+                    sourceImage.onload = () => {
+                        const canvas = document.getElementById('analysis-canvas');
+                        if (!canvas) return;
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = sourceImage.naturalWidth;
+                        canvas.height = sourceImage.naturalHeight;
+                        ctx.drawImage(sourceImage, 0, 0);
+    
+                        const drawBox = (box, color, label) => {
+                            if (!box) return;
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = Math.max(4, sourceImage.naturalWidth * 0.005);
+                            ctx.strokeRect(box.x, box.y, box.w, box.h);
+                            ctx.fillStyle = color;
+                            ctx.font = `bold ${Math.max(16, sourceImage.naturalWidth * 0.02)}px sans-serif`;
+                            ctx.fillText(label, box.x, box.y - 10);
+                        };
+                        drawBox(viz.personBox, '#39FF14', 'Subject');
+                        drawBox(viz.referenceBox, '#FF1493', 'Reference');
+                    };
+                }
+            }
+    
+            function showLandingPageUI() {
+                resultsPage.style.display = 'none';
+                landingPage.style.display = 'flex';
+                aboutContainer.style.display = 'block';
+                hideError();
+                imageUploadInput.value = '';
+                uploadedImages = [];
+                updateImagePreview();
+                toggleLoading(false);
+            }
+        });
+        </script>
+    </body>
+    </html>
