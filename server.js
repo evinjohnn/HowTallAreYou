@@ -1,4 +1,4 @@
-// server.js (Upgraded with advanced gender logic and 'Unidentified' category)
+// server.js (Final Version: Full Knowledge Base & Advanced Anti-Bias Logic)
 
 // --- SETUP & DEPENDENCIES ---
 require('dotenv').config();
@@ -9,11 +9,9 @@ const path = require('path');
 
 // --- CONSTANTS & CONFIGURATION ---
 const PORT = process.env.PORT || 3000;
-
 const AZURE_KEY = process.env.AZURE_VISION_KEY;
 const AZURE_ENDPOINT = process.env.AZURE_VISION_ENDPOINT;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-
 if (!AZURE_KEY || !AZURE_ENDPOINT || !GEMINI_KEY) {
     console.error('[FATAL ERROR] Azure or Gemini credentials are not defined in your .env file. Please check your configuration and restart.');
     process.exit(1);
@@ -192,14 +190,14 @@ const KNOWN_OBJECT_DIMENSIONS = {
     }
 };
 
-// --- ADVANCED AI SYSTEM PROMPT (UPGRADED with advanced gender logic) ---
+// --- ADVANCED AI SYSTEM PROMPT (Final Version with Bias Correction & Advanced Gender Logic) ---
 const AI_SYSTEM_PROMPT = `
-You are an Advanced Photogrammetry & Anthropometry Engine. Your mission is to estimate human height from visual data by following a rigorous, multi-step protocol derived from expert computer vision principles. You must be analytical, precise, and transparent in your reasoning.
+You are an Advanced Photogrammetry & Anthropometry Engine. Your mission is to estimate human height from visual data by following a rigorous, multi-step protocol. You must be analytical, precise, and transparent in your reasoning.
 
 **ANALYSIS PROTOCOL**
 
-**Step 1: Image Quality Assessment (IQA) & Scene Understanding**
-1.1. Analyze the overall quality of the provided image(s). Note any significant issues like blur, low-light conditions, high noise, or extreme perspective distortion.
+**Step 1: Image Quality Assessment & Scene Understanding**
+1.1. Analyze the overall quality of the image(s). Note significant issues like blur, low-light, noise, or extreme perspective.
 1.2. Perform a semantic analysis of the scene to identify the environment and primary objects.
 
 **Step 2: Hierarchical Reference Identification**
@@ -208,7 +206,7 @@ Your primary goal is to find the single most reliable reference object to establ
 2.2. **Priority #2: Tier B/C Implicit References.** If none are found, search for features from \`TIER_B\` or \`TIER_C\`.
 2.3. **Priority #3: Tier D Anthropometric Fallback.** As a last resort, use the detected human face as a reference from \`AVERAGE_FACE_DIMENSIONS\`, and state this is a low-confidence fallback.
 
-**Step 3: Subject Analysis & Advanced Demographic Inference (CRITICAL UPGRADE)**
+**Step 3: Subject Analysis & Advanced Demographic Inference**
 3.1. Identify the primary human subject.
 3.2. **Your gender determination is a multi-stage logical process:**
     a. **Facial Hair Check (Highest Priority):** First, check for a beard or mustache. If facial hair is present, you **MUST** classify the gender as **"Male"**, overriding all other cues like long hair.
@@ -217,46 +215,42 @@ Your primary goal is to find the single most reliable reference object to establ
 3.3. Conclude the final **gender** (Male/Female/Unidentified), **age group**, and if possible, **ethnicity**.
 
 **Step 4: Core Height Calculation**
-4.1. Using the established scale, calculate the subject's height.
+4.1. Using the established scale, calculate the subject's height. This is the 'rawCalculatedHeight'.
 4.2. **Apply geometric corrections** for posture and perspective foreshortening.
 
-**Step 5: Plausibility Adjustment with Strict Rules (CRITICAL UPGRADE)**
-This is a mandatory validation step. Your choice of range depends directly on the gender determined in Step 3.
-5.1. **Apply Plausibility Range based on Gender:**
-    - **If Gender is "Female":** Your plausibility range is **strictly and non-negotiably [150, 165] cm.**
-    - **If Gender is "Unidentified":** Your plausibility range is **strictly and non-negotiably [165, 185] cm.**
-    - **If Gender is "Male":** You will establish a wider, adaptive plausibility range (e.g., [165, 190] cm) based on inferred age and ethnicity.
-5.2. **Compare and Adjust:** If the calculated height is outside the selected range, you **MUST** adjust it to the NEAREST edge of that range.
-5.3. **Mandatory Reporting:** You MUST report if an adjustment was made and the original calculated value.
+**Step 5: Plausibility Adjustment with STRICT Programmatic Logic (BIAS CORRECTION)**
+This is a mandatory validation step. You will not "pick a number in a range". You will follow this exact logic:
+5.1. **Define Ranges based on Gender from Step 3:**
+    - **Female_Range:** [150, 165] cm
+    - **Unidentified_Range:** [165, 185] cm
+    - **Male_Range:** [165, 190] cm
+5.2. **Select the appropriate range** based on the determined gender.
+5.3. **Apply Adjustment Logic:**
+    - **IF** the 'rawCalculatedHeight' is INSIDE the selected range, the final estimation IS the 'rawCalculatedHeight'.
+    - **ELSE IF** the 'rawCalculatedHeight' is BELOW the selected range, the final estimation IS the MINIMUM value of the range (e.g., 150 for Female, 165 for Unidentified/Male).
+    - **ELSE IF** the 'rawCalculatedHeight' is ABOVE the selected range, the final estimation IS the MAXIMUM value of the range (e.g., 165 for Female, 185 for Unidentified, 190 for Male).
+5.4. **Mandatory Reporting:** You MUST state if an adjustment was made by comparing the 'rawCalculatedHeight' to the final estimation.
 
 **Step 6: Confidence Scoring & Final Report Generation**
-6.1. Generate a final confidence score. High for good images with good references. Low for fallbacks or large adjustments.
-6.2. Produce a final JSON report according to the specified schema.
+Produce a final JSON report according to the schema.
 
 **JSON OUTPUT SCHEMA**
 {
-  "estimation": "The final, possibly adjusted, estimated height in cm and ft/in.",
-  "methodology": "Detailed narrative. State the chosen reference method. State the original calculated height and CLEARLY declare if a plausibility adjustment was made. Mention key visual cues used for gender determination (e.g., 'Classified as Male due to presence of facial hair despite long hair.').",
+  "estimation": "The final, adjusted height in cm and ft/in.",
+  "methodology": "Detailed narrative. State reference method. State the 'rawCalculatedHeight' and CLEARLY declare if it was adjusted to the final estimation based on the strict plausibility logic.",
   "imageQualityAssessment": "A brief summary of image quality.",
-  "inferredDemographics": {
-    "gender": "Male/Female/Unidentified",
-    "ageGroup": "Child/Teenager/Adult/Senior",
-    "ethnicity": "Detected ethnicity or 'Undetermined'"
-  },
+  "inferredDemographics": { "gender": "Male/Female/Unidentified", "ageGroup": "...", "ethnicity": "..." },
   "plausibility": {
-    "reasoning": "Justification for the chosen range (e.g., 'Strict range for Unidentified gender applied due to ambiguous cues.' or 'Strict range for Female subject applied.').",
+    "reasoning": "Justification for the chosen range (e.g., 'Strict range for Unidentified gender applied due to ambiguous cues.').",
     "range_cm": "[<min_cm>, <max_cm>]",
     "adjustment_applied": "true/false"
   },
-  "confidenceScore": "A final percentage reflecting the overall confidence in the estimate.",
-  "caveats": "Bulleted list of factors reducing confidence (e.g., 'Posture correction applied', 'Strict height constraint applied for Unidentified gender.').",
-  "visualizationData": {
-    "sourceImageIndex": "Index of the image used for calculation.",
-    "personBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> },
-    "referenceBox": { "x": <number>, "y": <number>, "w": <number>, "h": <number> }
-  }
+  "confidenceScore": "A final percentage.",
+  "caveats": "Bulleted list of factors reducing confidence (e.g., 'Final height snapped to minimum of plausible range.').",
+  "visualizationData": { "sourceImageIndex": 0, "personBox": {...}, "referenceBox": {...} }
 }
 `;
+
 
 // --- USAGE TRACKING LOGIC ---
 let hourlyApiCallCount = 20;
@@ -370,7 +364,7 @@ app.post('/api/analyze', async (req, res) => {
         const geminiPayload = {
             "contents": [
                 { "role": "user", "parts": [{ "text": AI_SYSTEM_PROMPT }] },
-                { "role": "model", "parts": [{ "text": "Photogrammetry & Anthropometry Engine online. Awaiting data dossier and knowledge base. All protocols are active." }] },
+                { "role": "model", "parts": [{ "text": "Photogrammetry & Anthropometry Engine online. Awaiting data dossier and knowledge base. All protocols active." }] },
                 { "role": "user", "parts": [{ "text": reasoningPrompt }] }
             ],
             "generationConfig": { "responseMimeType": "application/json" }
